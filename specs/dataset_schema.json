@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.3.0",
+  "schema_version": "0.4.0",
   "dataset_title": "Antibacterial peptide MIC dataset",
   "fields": [
     {
@@ -12,7 +12,7 @@
     {
       "name": "peptide_sequence",
       "type": "string",
-      "required": true,
+      "required": false,
       "description": "Amino acid sequence of the antibacterial peptide in single-letter code.",
       "example": "LLGDFFRKSKEKIGKEFKRIVQRIKDFLRNLVPRTES",
       "normalization_rule": "Uppercase; remove spaces and hyphens; keep standard one-letter amino acid codes only."
@@ -94,17 +94,18 @@
     },
     {
       "name": "measurement_value",
-      "type": "number",
+      "type": "string",
       "required": false,
-      "description": "Numeric MIC value as reported in the source. Null if only a range or censored bound is given.",
-      "example": 8.0
+      "description": "MIC as reported in the source — plain number, censored bound (e.g. >128), range text, etc. Stored with minimal rewriting so symbols and wording stay visible.",
+      "example": ">8",
+      "normalization_rule": "Prefer the exact source string (strip whitespace). Do not drop censored bounds or ranges for cleaning."
     },
     {
       "name": "normalized_value_ug_ml",
-      "type": "number",
+      "type": "string",
       "required": false,
-      "description": "MIC converted to µg/mL for cross-record comparison.",
-      "example": 36.5,
+      "description": "MIC in µg/mL when convertible from numeric source value and unit; stored as digits (e.g. 8.22) or a censored string (e.g. >128) matching the normalized bound.",
+      "example": "36.5",
       "normalization_rule": "Convert using original unit (from source text) and molecular_weight_da: µM × MW_Da / 1000 = µg/mL."
     },
     {

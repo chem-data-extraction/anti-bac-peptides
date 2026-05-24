@@ -1,5 +1,5 @@
 {
-  "pipeline_version": "0.2.0",
+  "pipeline_version": "0.3.0",
   "inputs": [
     "data/extracted/pdf_extracted_records.csv",
     "data/extracted/web_extracted_records.csv"
@@ -19,7 +19,7 @@
     {
       "step_id": "normalize_units",
       "operation": "unit_conversion",
-      "description": "Ensure normalized_value_ug_ml holds numeric MIC in µg/mL; set measurement_value to null for censored bounds (>X, <X).",
+      "description": "Keep measurement_value as verbatim source MIC text; derive normalized_value_ug_ml when numeric conversion is possible.",
       "fields": ["measurement_value", "normalized_value_ug_ml"],
       "output_file": "data/interim/merged_records.csv"
     },
@@ -40,15 +40,15 @@
     {
       "step_id": "standardize_missing_values",
       "operation": "missing_value_cleanup",
-      "description": "Map NA, N/A, -, empty strings to null-like values for pandas export.",
-      "fields": ["measurement_value", "medium_composition", "peptide_modifications"],
+      "description": "Map NA, N/A, -, empty strings to null-like values except verbatim MIC tokens.",
+      "fields": ["medium_composition", "peptide_modifications"],
       "output_file": "data/interim/merged_records.csv"
     },
     {
       "step_id": "deduplicate_records",
       "operation": "deduplicate",
-      "description": "Remove duplicate rows sharing the same record_id.",
-      "fields": ["record_id"],
+      "fields": ["all_schema_columns_except_record_id", "record_id"],
+      "description": "Drop rows that are identical across all schema fields except record_id (same peptide, pathogen, assay conditions, MIC, source), then deduplicate remaining record_ids.",
       "output_file": "data/interim/merged_records.csv"
     },
     {

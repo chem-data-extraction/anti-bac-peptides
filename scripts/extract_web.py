@@ -43,36 +43,39 @@ def normalize_sequence(seq: object) -> str:
 def normalize_mic_to_ug_ml(
     value: object, unit: str, mw_da: float | None
 ) -> tuple[object, object, str]:
-    """Convert MIC to schema fields; unit goes into notes, not a CSV column."""
-    unit_l = str(unit or "ug/mL").strip().lower()
+    """Derive comparable µg/mL when possible; measurement_value stays the verbatim concentration string."""
+    unit_l = str(unit or "ug/mL").strip().lower().replace("µ", "u").replace("μ", "u")
     notes = f"unit={unit_l}"
     if value is None or str(value).strip() == "":
         return "", "", notes
 
-    text = str(value).strip().replace(",", ".")
-    censored = text.startswith(">") or text.startswith("<")
+    raw_mv = str(value).strip()
+    text = raw_mv.replace(",", ".").replace("−", "-")
+    censored = text.startswith((">", "<"))
     prefix = ">" if text.startswith(">") else ("<" if text.startswith("<") else "")
     try:
         num = float(text.lstrip("><"))
     except ValueError:
-        return text, text, notes
+        return raw_mv, raw_mv, notes
 
-    if unit_l in ("ug/ml", "µg/ml", "ug/mL".lower(), "µg/mL".lower()):
-        norm = round(num, 3)
-    elif unit_l in ("mg/l", "mg/L".lower()):
-        norm = round(num, 3)
-    elif unit_l in ("um", "µm", "uM".lower()) and mw_da:
-        norm = round(num * mw_da / 1000.0, 3)
+    norm: float | str
+    if unit_l in ("ug/ml",):
+        norm = round(num, 6)
+    elif unit_l in ("mg/l",):
+        norm = round(num, 6)
+    elif unit_l in ("um", "u m") and mw_da:
+        norm = round(num * float(mw_da) / 1000.0, 6)
+    elif unit_l in ("um", "u m"):
+        norm = round(num, 6) if not censored else f"{prefix}{num}"
     else:
-        norm = round(num, 3) if not censored else f"{prefix}{num}"
+        norm = round(num, 6) if not censored else f"{prefix}{num}"
 
     if censored:
-        mv = text
-        nv = f"{prefix}{norm}" if isinstance(norm, (int, float)) else text
+        nv = f"{prefix}{norm}" if isinstance(norm, (int, float)) else str(norm)
         notes = f"{notes}; censored bound"
-        return mv, nv, notes
+        return raw_mv, nv, notes
 
-    return num, norm, notes
+    return raw_mv, norm, notes
 
 
 def row_to_output(row: dict, columns: list[str]) -> dict[str, Any]:
@@ -110,6 +113,12 @@ NON_BACTERIAL = (
     "candida", "fungus", "fungal", "virus", "viral", "mammalian",
     "erythrocyte", "human", "mouse", "cancer", "tumor", "hela",
 )
+
+
+def is_bacterial_target(species_name: str) -> bool:
+    lower = species_name.lower()
+    return not any(x in lower for x in NON_BACTERIAL)
+
 
 DRAMP_MIC_PATTERN = re.compile(
     r"\(MIC[=<>≤]?\s*([\d.>]+)\s*([μuµ]?g/ml|[μuµ]?M|mg/L|pmol/ml|nM)?\)",
@@ -150,9 +159,56 @@ def _try_import(name: str) -> Any | None:
         return None
 
 
-def is_bacterial_target(species_name: str) -> bool:
-    lower = species_name.lower()
-    return not any(x in lower for x in NON_BACTERIAL)
+
+
+def split_pathogen_strain(species_reported: str) -> tuple[str, str]:
+    """Split species phrase and trailing catalogue designation (e.g. ATCC …)."""
+    s = species_reported.strip()
+    if not s:
+        return "", ""
+    m = re.search(
+        r"^(.*?)\s+((?:ATCC|DSMZ|CCUG|NCTC)\s*(?:#\s*)?[\w./\-]+)\s*$",
+        s,
+        re.IGNORECASE,
+    )
+    if m:
+        base, strain = m.group(1).strip(), m.group(2).strip()
+        return (base, strain) if base else (strain, "")
+    return s, ""
+
+
+def compose_medium_composition(act: dict, medium_obj: dict) -> str:
+    """Medium details exposed by DBAASP (description, pH, salts, curator note)."""
+    parts: list[str] = []
+    if isinstance(medium_obj, dict):
+        desc = str(medium_obj.get("description") or "").strip()
+        if desc:
+            parts.append(desc)
+    ph = str(act.get("ph") or "").strip()
+    if ph:
+        parts.append(f"pH {ph}")
+    ion = str(act.get("ionicStrength") or "").strip()
+    if ion:
+        parts.append(f"ionic strength {ion}")
+    salt = str(act.get("saltType") or "").strip()
+    if salt:
+        parts.append(salt)
+    note = str(act.get("note") or "").strip()
+    if note:
+        parts.append(note)
+    return "; ".join(parts)
+
+
+def format_inoculum_cfu(act: dict) -> str:
+    parts: list[str] = []
+    raw = act.get("cfu")
+    if str(raw).strip():
+        parts.append(str(raw).strip())
+    grp = act.get("cfuGroup") or {}
+    gname = grp.get("name", "") if isinstance(grp, dict) else ""
+    if str(gname).strip():
+        parts.append(f"cfu_range={str(gname).strip()}")
+    return "; ".join(parts)
 
 
 def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: int) -> list[dict]:
@@ -190,6 +246,8 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
         if not pathogen or not is_bacterial_target(pathogen):
             continue
 
+        pathogen_name, strain = split_pathogen_strain(pathogen)
+
         unit_obj = act.get("unit") or {}
         unit = unit_obj.get("name", "ug/mL") if isinstance(unit_obj, dict) else str(unit_obj or "ug/mL")
         raw_value = act.get("concentration", "")
@@ -200,10 +258,14 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
         medium_obj = act.get("medium") or {}
         medium = medium_obj.get("name", "") if isinstance(medium_obj, dict) else ""
 
+        medi_compose = compose_medium_composition(act, medium_obj)
+
+        slug_path = slugify(pathogen_name.split()[0])[:6] if pathogen_name else "unk"
+
         idx = idx_start + len(rows) + 1
         rows.append({
             "record_id": (
-                f"rec_{slugify(str(name))[:12]}_{slugify(pathogen.split()[0])[:6]}"
+                f"rec_{slugify(str(name))[:12]}_{slug_path}"
                 f"_{source_id[:6]}_{idx:03d}"
             ),
             "peptide_sequence": seq,
@@ -213,16 +275,16 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
             "organism_source": organism,
             "synthesis_type": synthesis.lower() if synthesis else "",
             "peptide_modifications": "",
-            "pathogen_name": pathogen,
-            "pathogen_strain": "",
+            "pathogen_name": pathogen_name,
+            "pathogen_strain": strain,
             "gram_stain": "",
             "measurement_type": "MIC",
             "measurement_value": mv,
             "normalized_value_ug_ml": nv,
             "assay_method": "",
             "medium": medium,
-            "medium_composition": "",
-            "inoculum_cfu_ml": str(act.get("cfu") or ""),
+            "medium_composition": medi_compose,
+            "inoculum_cfu_ml": format_inoculum_cfu(act),
             "temperature_c": "",
             "incubation_time_h": "",
             "source_id": source_id,

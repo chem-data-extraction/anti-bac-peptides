@@ -1,5 +1,5 @@
 {
-  "validation_version": "0.1.1",
+  "validation_version": "0.1.2",
   "rules": [
     {
       "rule_id": "files_exist_core",
@@ -51,11 +51,11 @@
       "description": "Dataset columns must match field names in specs/dataset_schema.json."
     },
     {
-      "rule_id": "measurement_value_numeric",
+      "rule_id": "measurement_value_text_or_null",
       "target": "measurement_value",
-      "rule_type": "numeric_or_null",
+      "rule_type": "scalar_or_null",
       "severity": "error",
-      "description": "measurement_value must be numeric or empty/null."
+      "description": "measurement_value is the verbatim MIC token from the source (number, censored bound, range text); may be empty/null."
     }
   ]
 }

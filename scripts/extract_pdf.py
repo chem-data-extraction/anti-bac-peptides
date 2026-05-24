@@ -39,53 +39,58 @@ def normalize_sequence(seq: object) -> str:
 
 
 def parse_mic_value(raw: object) -> tuple[object, object, str]:
-    """Return (measurement_value, normalized_value_ug_ml, notes_suffix)."""
+    """Assume reported concentration is µg-relevant scalar; verbatim token in measurement_value."""
     if raw is None or str(raw).strip() == "":
         return "", "", ""
-    text = str(raw).strip().replace(",", ".")
-    censored = text.startswith(">") or text.startswith("<")
+    raw_mv = str(raw).strip()
+    text = raw_mv.replace(",", ".").replace("−", "-")
+    censored = text.startswith((">", "<"))
+    prefix = ">" if text.startswith(">") else ("<" if text.startswith("<") else "")
     try:
         num = float(text.lstrip("><"))
     except ValueError:
-        return text, text, ""
+        return raw_mv, raw_mv, ""
     if censored:
-        return text, text, f"censored bound {text}"
-    return num, num, ""
+        return raw_mv, f"{prefix}{num}", f"censored bound {raw_mv}"
+    return raw_mv, num, ""
 
 
 def normalize_mic_to_ug_ml(
     value: object, unit: str, mw_da: float | None
 ) -> tuple[object, object, str]:
-    """Convert MIC to schema fields; unit goes into notes, not a CSV column."""
-    unit_l = str(unit or "ug/mL").strip().lower()
+    """Derive comparable µg/mL when possible; measurement_value stays verbatim."""
+    unit_l = str(unit or "ug/mL").strip().lower().replace("µ", "u").replace("μ", "u")
     notes = f"unit={unit_l}"
     if value is None or str(value).strip() == "":
         return "", "", notes
 
-    text = str(value).strip().replace(",", ".")
-    censored = text.startswith(">") or text.startswith("<")
+    raw_mv = str(value).strip()
+    text = raw_mv.replace(",", ".").replace("−", "-")
+    censored = text.startswith((">", "<"))
     prefix = ">" if text.startswith(">") else ("<" if text.startswith("<") else "")
     try:
         num = float(text.lstrip("><"))
     except ValueError:
-        return text, text, notes
+        return raw_mv, raw_mv, notes
 
-    if unit_l in ("ug/ml", "µg/ml", "ug/mL".lower(), "µg/mL".lower()):
-        norm = round(num, 3)
-    elif unit_l in ("mg/l", "mg/L".lower()):
-        norm = round(num, 3)
-    elif unit_l in ("um", "µm", "uM".lower()) and mw_da:
-        norm = round(num * mw_da / 1000.0, 3)
+    norm: float | str
+    if unit_l in ("ug/ml",):
+        norm = round(num, 6)
+    elif unit_l in ("mg/l",):
+        norm = round(num, 6)
+    elif unit_l in ("um", "u m") and mw_da:
+        norm = round(num * float(mw_da) / 1000.0, 6)
+    elif unit_l in ("um", "u m"):
+        norm = round(num, 6) if not censored else f"{prefix}{num}"
     else:
-        norm = round(num, 3) if not censored else f"{prefix}{num}"
+        norm = round(num, 6) if not censored else f"{prefix}{num}"
 
     if censored:
-        mv = text
-        nv = f"{prefix}{norm}" if isinstance(norm, (int, float)) else text
+        nv = f"{prefix}{norm}" if isinstance(norm, (int, float)) else str(norm)
         notes = f"{notes}; censored bound"
-        return mv, nv, notes
+        return raw_mv, nv, notes
 
-    return num, norm, notes
+    return raw_mv, norm, notes
 
 
 def row_to_output(row: dict, columns: list[str]) -> dict[str, Any]:

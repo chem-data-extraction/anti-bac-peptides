@@ -36,7 +36,7 @@ def normalize_missing_values(value: object):
 
 
 def parse_numeric_measurement(value: object) -> float | None:
-    """Return a float MIC or None for censored / non-numeric values."""
+    """Parse a lone numeric MIC; used for auxiliary numeric fields only."""
     if pd.isna(value) or value is None:
         return None
     text = str(value).strip()
@@ -46,6 +46,16 @@ def parse_numeric_measurement(value: object) -> float | None:
         return float(text)
     except (TypeError, ValueError):
         return None
+
+
+def normalize_verbatim_mic(value: object) -> str | None:
+    """Keep MIC as reported (digits, censored bounds, ranges); blank only for placeholders."""
+    if pd.isna(value) or value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in MISSING_TOKENS:
+        return None
+    return text
 
 
 def normalize_synthesis_type(value: object) -> str | None:
@@ -117,12 +127,10 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         out["publication_year"] = out["publication_year"].map(normalize_integer)
 
     if "measurement_value" in out.columns:
-        out["measurement_value"] = out["measurement_value"].map(parse_numeric_measurement)
+        out["measurement_value"] = out["measurement_value"].map(normalize_verbatim_mic)
 
     if "normalized_value_ug_ml" in out.columns:
-        out["normalized_value_ug_ml"] = out["normalized_value_ug_ml"].map(
-            parse_numeric_measurement
-        )
+        out["normalized_value_ug_ml"] = out["normalized_value_ug_ml"].map(normalize_verbatim_mic)
 
     for col in out.columns:
         if col in (
@@ -143,6 +151,14 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     if "measurement_type" in out.columns:
         out["measurement_type"] = out["measurement_type"].fillna("MIC").replace("", "MIC")
+
+    schema_cols = load_schema_columns()
+    content_cols = [c for c in schema_cols if c != "record_id" and c in out.columns]
+    if content_cols:
+        before = len(out)
+        out = out.drop_duplicates(subset=content_cols, keep="first")
+        if len(out) < before:
+            print(f"Dropped {before - len(out)} duplicate row(s) by assay + peptide + pathogen + MIC fingerprint.")
 
     if "record_id" in out.columns:
         out = out.drop_duplicates(subset=["record_id"], keep="first")

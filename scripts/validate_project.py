@@ -106,15 +106,15 @@ def check_source_id(df: pd.DataFrame, source_map: dict) -> tuple[list[str], list
 
 
 def check_measurement_value(df: pd.DataFrame) -> list[str]:
+    """measurement_value is verbatim MIC text (digits, censored bounds, ranges); numeric-only not required."""
     issues = []
     col = df["measurement_value"]
     for idx, val in col.items():
         if pd.isna(val) or val == "":
             continue
-        try:
-            float(val)
-        except (TypeError, ValueError):
-            issues.append(f"measurement_value not numeric at row {idx}: {val!r}")
+        if isinstance(val, (bool, int, float, str)):
+            continue
+        issues.append(f"measurement_value has unsupported type at row {idx}: {type(val).__name__}")
     return issues
 
 

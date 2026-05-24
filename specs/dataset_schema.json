@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.4.0",
+  "schema_version": "0.7.0",
   "dataset_title": "Antibacterial peptide MIC dataset",
   "fields": [
     {
@@ -16,22 +16,6 @@
       "description": "Amino acid sequence of the antibacterial peptide in single-letter code.",
       "example": "LLGDFFRKSKEKIGKEFKRIVQRIKDFLRNLVPRTES",
       "normalization_rule": "Uppercase; remove spaces and hyphens; keep standard one-letter amino acid codes only."
-    },
-    {
-      "name": "peptide_length",
-      "type": "integer",
-      "required": false,
-      "description": "Number of amino acid residues in the peptide sequence. Derived from peptide_sequence.",
-      "example": 37,
-      "normalization_rule": "Computed as len(peptide_sequence) after normalization. Used to filter outliers (typical range: 5–100 aa)."
-    },
-    {
-      "name": "molecular_weight_da",
-      "type": "number",
-      "required": false,
-      "description": "Molecular weight of the peptide in Daltons. Required for converting MIC from µM to µg/mL.",
-      "example": 4493.3,
-      "normalization_rule": "Calculated from peptide_sequence using standard amino acid masses; adjust if modifications are present."
     },
     {
       "name": "peptide_name",
@@ -55,13 +39,6 @@
       "description": "How the peptide was produced: ribosomal, nonribosomal, or synthetic.",
       "example": "ribosomal",
       "allowed_values": ["ribosomal", "nonribosomal", "synthetic", "unknown"]
-    },
-    {
-      "name": "peptide_modifications",
-      "type": "string",
-      "required": false,
-      "description": "Structured description of chemical or structural modifications: N-terminal, C-terminal, cyclization, D-amino acids, unusual residues, etc.",
-      "example": "C-terminal amidation; D-Lys at position 4"
     },
     {
       "name": "pathogen_name",
@@ -101,12 +78,11 @@
       "normalization_rule": "Prefer the exact source string (strip whitespace). Do not drop censored bounds or ranges for cleaning."
     },
     {
-      "name": "normalized_value_ug_ml",
+      "name": "measurement_unit",
       "type": "string",
       "required": false,
-      "description": "MIC in µg/mL when convertible from numeric source value and unit; stored as digits (e.g. 8.22) or a censored string (e.g. >128) matching the normalized bound.",
-      "example": "36.5",
-      "normalization_rule": "Convert using original unit (from source text) and molecular_weight_da: µM × MW_Da / 1000 = µg/mL."
+      "description": "Unit of measurement_value normalized to a small canonical set (ug/mL, mg/L, uM, nM, pmol/ml).",
+      "example": "ug/mL"
     },
     {
       "name": "assay_method",

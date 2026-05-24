@@ -1,82 +1,85 @@
 {
-  "web_extraction_version": "1.1.0",
+  "web_extraction_version": "2.0.0",
   "output_records_file": "data/extracted/web_extracted_records.csv",
   "script": "scripts/extract_web.py",
-  "schema_version": "0.3.0",
-  "max_records_per_source": 200,
+  "schema_version": "0.7.0",
+  "max_records_per_source": 1000,
   "output_columns": [
-    "record_id", "peptide_sequence", "peptide_length", "molecular_weight_da",
-    "peptide_name", "organism_source", "synthesis_type", "peptide_modifications",
+    "record_id", "peptide_sequence",
+    "peptide_name", "organism_source", "synthesis_type",
     "pathogen_name", "pathogen_strain", "gram_stain",
-    "measurement_type", "measurement_value", "normalized_value_ug_ml",
+    "measurement_type", "measurement_value", "measurement_unit",
     "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
     "temperature_c", "incubation_time_h",
     "source_id", "source_type", "publication_year", "source_url", "doi",
     "extraction_method", "extraction_confidence", "notes"
   ],
-  "extraction_note": "DBAASP: POST https://dbaasp.org/api/v1 (search + peptide_card). DRAMP: HTTPS bulk Excel download. Rate limit: 1 s between requests.",
+  "extraction_note": "Three ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP general_amps workbook from data/raw/web (Target_Organism `(MIC …)` parsing); (3) CAMPR4/CAMP HTML list + seqDisp detail pages for entries whose Target field contains `(MIC …)`. Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below.",
   "input_pages": [
     {
       "source_id": "db_dbaasp",
-      "page_id": "dbaasp_antibacterial_search",
-      "url": "https://dbaasp.org/api/v1",
-      "api_base": "https://dbaasp.org/api/v1",
+      "page_id": "dbaasp_peptide_cards",
+      "url": "https://dbaasp.org/peptides",
+      "max_records": 1000,
+      "dbaasp_max_list_pages": 80,
       "access_date": "2026-05-24",
       "access_status": "open_access",
       "license": "free for academic use",
-      "robots_notes": "API documented at https://dbaasp.org/help. Use POST form-data, max 1 req/s.",
-      "selection_reason": "Primary database. Per-pathogen MIC with assay conditions. Two-step: search by bacteria target_group, then peptide_card per ID.",
+      "robots_notes": "Public JSON at https://dbaasp.org/peptides?page=&size=. Throttle ≥1 req/s (script default).",
+      "selection_reason": "Primary structured MIC per peptide–target with medium/inoculum when available.",
       "page_type": "rest_api_json",
       "parser_plan": {
-        "tool": "requests POST + json",
-        "steps": [
-          {"query": "lookup", "lookup_type": "target_group", "filter": "name contains 'bacter'"},
-          {"query": "search", "target_group_id": "<from_lookup>", "complexity": "monomer", "format": "json"},
-          {"query": "peptide_card", "peptide_id": "<from_search>", "format": "json"}
-        ],
+        "tool": "requests GET /peptides list + GET /peptides/{id} cards",
         "field_mapping": {
-          "peptideCard.sequence": "peptide_sequence",
-          "peptideCard.name": "peptide_name",
-          "peptideCard.mw": "molecular_weight_da",
-          "peptideCard.organism": "organism_source",
-          "targetActivity.target": "pathogen_name",
-          "targetActivity.strain": "pathogen_strain",
-          "targetActivity.value": "measurement_value",
-          "targetActivity.unit": "notes (unit=...)"
+          "sequence": "peptide_sequence",
+          "name": "peptide_name",
+          "targetActivities[].concentration": "measurement_value",
+          "targetActivities[].unit": "measurement_unit"
         },
-        "filter": "activityMeasure contains MIC; units ug/mL, uM, mg/L",
-        "normalization": "uM -> ug/mL via molecular_weight_da / 1000"
+        "filter": "Monomers only; MIC activity measure; bacterial targets.",
+        "notes": "verbatim MIC text; canonical units via mic_normalization.py only."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
       "extraction_status": "pending"
     },
     {
       "source_id": "db_dramp",
-      "page_id": "dramp_general_dataset_download",
-      "url": "http://dramp.cpu-bioinfor.org/downloads/",
-      "download_url": "http://dramp.cpu-bioinfor.org/downloads/download.php?filename=download_data/DRAMP3.0_new/general_amps.xlsx",
-      "access_date": "2026-05-24",
-      "access_status": "open_access",
+      "page_id": "dramp_general_workbook",
+      "url": "https://dramp.cpu-bioinfor.org",
+      "doi": "10.1093/nar/gkae1008",
       "license": "CC BY 4.0",
-      "robots_notes": "Single bulk download. Cite DRAMP 4.0 (doi: 10.1093/nar/gkae1008).",
-      "selection_reason": "Second database source. General dataset with MIC per target organism. Complements DBAASP coverage.",
-      "page_type": "bulk_download_excel",
+      "max_records": 1000,
+      "local_workbook_path": "data/raw/web/dramp_general_dataset.xlsx",
+      "sheet_name": "general_amps",
+      "access_method": "Place DRAMP antibacterial/general Excel export (or curated snapshot matching column names DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID) under local_workbook_path.",
+      "notes": "Substantial overlap with DBAASP/literature is expected — use source_id + sequence + pathogen when deduplicating.",
+      "raw_snapshot_path": "data/raw/web/dramp_extraction_run_meta.json",
       "parser_plan": {
-        "tool": "pandas read_excel (openpyxl)",
-        "column_mapping": {
-          "Name": "peptide_name",
-          "Sequence": "peptide_sequence",
-          "Source_Organism": "organism_source",
-          "Synthesis_Type": "synthesis_type",
-          "Target_Organism": "pathogen_name",
-          "MIC_value": "measurement_value",
-          "MIC_unit": "notes (unit=...)",
-          "Assay_Method": "assay_method"
-        },
-        "filter": "numeric MIC_value and bacterial Target_Organism",
-        "normalization": "uM -> ug/mL when MW available"
+        "tool": "pandas.read_excel",
+        "filter": "Activity contains Antibacterial; Target_Organism must contain `(MIC …)` clauses parseable by shared regex helpers.",
+        "extraction_confidence_default": "medium"
       },
-      "raw_snapshot_path": "data/raw/web/dramp_general_dataset.xlsx",
+      "extraction_status": "pending"
+    },
+    {
+      "source_id": "db_campr4",
+      "page_id": "campr4_sequence_browser",
+      "url": "https://camp.bicnirrh.res.in",
+      "doi": "10.1093/nar/gkac1012",
+      "license": "see CAMPR/R site terms — academic use typical",
+      "max_records": 1000,
+      "camp_site_origin": "https://camp.bicnirrh.res.in",
+      "list_url_pattern": "{orig}/seqDb.php?page={page}&natural=natural",
+      "campr_list_page_first": 0,
+      "campr_max_list_pages": 8,
+      "rate_limit_s": 1.0,
+      "access_method": "HTML: harvest seqDisp.php?id=CAMPSQ… IDs from seqDb listings, GET detail pages, parse Activity/Title/Source/Target/FASTA.",
+      "parser_plan": {
+        "tool": "requests + regex (no BeautifulSoup dependency)",
+        "filter": "Activity contains Antibacterial; Target column must yield ≥1 `(MIC …)` segment; peptide sequence from .fasta table cell.",
+        "notes": "Many CAMPR entries omit numeric MIC on the HTML card — those are skipped automatically."
+      },
+      "raw_snapshot_path": "data/raw/web/campr4_harvest_snapshot.json",
       "extraction_status": "pending"
     }
   ]

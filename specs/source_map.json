@@ -1,82 +1,76 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.1.0",
+  "source_map_version": "1.5.0",
   "source_groups": {
     "databases": [
       {
         "source_id": "db_dbaasp",
-        "name": "DBAASP v3 — Database of Antimicrobial Activity and Structure of Peptides",
+        "name": "DBAASP — Database of Antimicrobial Activity and Structure of Peptides",
         "source_type": "database",
         "url": "https://dbaasp.org",
         "doi": "10.1093/nar/gkaa991",
         "access_status": "open_access",
-        "access_method": "REST API (https://dbaasp.org/api/v1) and Advanced Search CSV/JSON/FASTA export; no authentication required",
+        "access_method": "JSON peptide cards (`GET https://dbaasp.org/peptides?page=&size=` listing + `/peptides/{id}?format=json`); Alternative: Advanced Search CSV/JSON/FASTA exports (https://dbaasp.org/help).",
         "access_date": "2026-05-24",
         "license": "free for academic use",
         "expected_data_volume": "high",
-        "estimated_records": 2000,
+        "estimated_records": 1000,
         "available_data_types": ["structured_records", "sequences", "activity_values", "assay_conditions"],
         "expected_fields": [
           "peptide_sequence", "peptide_name", "organism_source", "synthesis_type",
-          "peptide_modifications", "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "assay_method", "medium",
-          "inoculum_cfu_ml", "temperature_c", "incubation_time_h", "doi"
+          "pathogen_name", "pathogen_strain",
+          "measurement_type", "measurement_value", "measurement_unit", "medium",
+          "inoculum_cfu_ml"
         ],
         "extraction_strategy": {
           "recommended_method": "web_api_json",
-          "tool": "requests + Python",
-          "notes": "Use /api/v1/peptides with target_group_id for bacteria; filter by activity_measure_id for MIC. Supports output as JSON, FASTA, CSV. Alternatively, use Advanced Search UI and export CSV. The DBAASP_api_helper_libraries GitHub repo (melomcr/dbaasp_api_helper_libraries) provides wrapper functions. Each peptide record contains a TargetActivity list with per-pathogen MIC values — one record per activity row."
+          "tool": "scripts/extract_web.py → fetch_dbaasp",
+          "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary database source. DBAASP stores MIC per peptide–pathogen pair with assay conditions (medium, CFU, temperature), matching our schema fields exactly. Contains >15,700 entries as of v3 (2021); continuously updated. Manually curated from primary literature with PubMed links. Covers ribosomal, non-ribosomal, and synthetic peptides. API query for antibacterial MICs: https://dbaasp.org/api/v1?query=search&target_group_id=1&format=json"
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (`mic_normalization`)."
       },
       {
         "source_id": "db_dramp",
         "name": "DRAMP 4.0 — Data Repository of Antimicrobial Peptides",
         "source_type": "database",
-        "url": "http://dramp.cpu-bioinfor.org",
+        "url": "https://dramp.cpu-bioinfor.org",
         "doi": "10.1093/nar/gkae1008",
         "access_status": "open_access",
-        "access_method": "bulk download from http://dramp.cpu-bioinfor.org/downloads/ (categorized by activity type); also on figshare and GitHub (CPU-DRAMP/DRAMP-3.0)",
+        "access_method": "Bulk Excel workbook placed at `data/raw/web/dramp_general_dataset.xlsx` (general_amps sheet mirrors DRAMP workbook columns DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID). Official download bundles are categorized by activity on the DRAMP site.",
         "access_date": "2026-05-24",
-        "license": "CC BY 4.0",
+        "license": "CC BY 4.0 (see DRAMP site)",
         "expected_data_volume": "high",
-        "estimated_records": 3000,
-        "available_data_types": ["structured_records", "sequences", "activity_values"],
-        "expected_fields": [
-          "peptide_sequence", "peptide_name", "organism_source", "synthesis_type",
-          "pathogen_name", "measurement_type", "measurement_value", "doi", "publication_year"
-        ],
+        "estimated_records": 1000,
+        "available_data_types": ["excel", "activity_narratives"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {
-          "recommended_method": "bulk_download_csv",
-          "tool": "pandas",
-          "notes": "Download the 'antibacterial' subset from the downloads page (categorized by activity). The general dataset contains experimentally validated entries with MIC values and target organism annotations. Patent entries may lack assay-condition detail — prefer general dataset. PubMed IDs in activity fields allow tracing to primary papers."
+          "recommended_method": "local_bulk_xlsx",
+          "tool": "scripts/extract_web.py → fetch_dramp (pandas)",
+          "notes": "Filters rows where Activity contains Antibacterial. Target_Organism free text is segmented on `(MIC …)` clauses shared with CAMPR extractor. Hepuristic parser → extraction_confidence=medium."
         },
-        "notes": "Second major database source. DRAMP 4.0 (2024) contains 30,260 entries: 11,612 general, 17,886 patent, 96 clinical. The general dataset (~11k) is the target. DRAMP has ~70% non-overlapping sequences vs APD+CAMP, providing coverage complementary to DBAASP. CC BY 4.0 license permits unrestricted use with citation. DRAMP 4.0 adds serum/protease stability annotations not in DBAASP."
+        "notes": "Overlaps extensively with curated literature databases (often including DBAASP); treat as supplementary rows and optionally dedupe on sequence + bacterial pathogen + MIC text when merging downstream."
       },
       {
         "source_id": "db_campr4",
-        "name": "CAMPR4 — Collection of Anti-Microbial Peptides (version 4)",
+        "name": "CAMPR4 — CAMP / CAMPR antimicrobial peptide compilation (HTML portal)",
         "source_type": "database",
         "url": "https://camp.bicnirrh.res.in",
         "doi": "10.1093/nar/gkac1012",
         "access_status": "open_access",
-        "access_method": "web search with export; search by target organism or MIC activity; no bulk API; export individual query results",
+        "access_method": "`seqDb.php` listing pages scrape `seqDisp.php?id=CAMPSQ…` detail URLs; extractor pulls Title, FASTA sequence, Activity, Target, PubMed hyperlink.",
         "access_date": "2026-05-24",
-        "license": "free for academic use",
-        "expected_data_volume": "medium",
-        "estimated_records": 500,
-        "available_data_types": ["structured_records", "sequences", "activity_values"],
-        "expected_fields": [
-          "peptide_sequence", "peptide_name", "organism_source",
-          "pathogen_name", "measurement_type", "measurement_value", "doi"
-        ],
+        "license": "Institutional terms (ICMR-NIRRCH CAMPR portal); cite NAR CAMPR publication",
+        "expected_data_volume": "low",
+        "estimated_records": 1000,
+        "available_data_types": ["html_tables", "sequences"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value"],
         "extraction_strategy": {
-          "recommended_method": "web_scrape",
-          "tool": "requests + BeautifulSoup",
-          "notes": "Query by target organism (e.g., Escherichia coli, Staphylococcus aureus) and export results. MIC values are stored per target organism. CAMPR4 has 24,243 sequences (11,827 natural + 12,416 synthetic). Focus on experimentally validated (non-predicted, non-patent) entries with MIC values."
+          "recommended_method": "web_html_seed_list",
+          "tool": "scripts/extract_web.py → fetch_campr_sequences",
+          "notes": "Only antibacterial cards whose Target field contains parseable `(MIC …)` snippets become rows — many curated sequences omit numeric MIC entirely and are intentionally skipped."
         },
-        "notes": "Tertiary database source. CAMPR4 uses a separate curation pipeline from DBAASP and DRAMP, capturing records the others may miss. Contains information on N/C terminal modifications and unusual amino acids. Lower priority than DBAASP and DRAMP due to no bulk download API, but provides a useful cross-check."
+        "notes": "Operational label `db_campr4` matches coursework naming; URLs remain on ICMR CAMPR portal. Rate limiting defaults to ≥1 s/request to stay polite (`rate_limit_s` manifest knob)."
       }
     ],
     "scientific_papers": [
@@ -94,9 +88,9 @@
         "estimated_records": 66,
         "available_data_types": ["tables", "text", "supplementary_tables"],
         "expected_fields": [
-          "peptide_sequence", "peptide_name", "peptide_length",
+          "peptide_sequence", "peptide_name",
           "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "assay_method", "medium"
+          "measurement_type", "measurement_value", "measurement_unit", "assay_method", "medium"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
@@ -120,15 +114,15 @@
         "estimated_records": 40,
         "available_data_types": ["tables", "figures", "text"],
         "expected_fields": [
-          "peptide_sequence", "peptide_name", "peptide_modifications",
+          "peptide_sequence", "peptide_name",
           "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "assay_method", "molecular_weight_da", "normalized_value_ug_ml"
+          "measurement_type", "measurement_value", "measurement_unit", "assay_method"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "pdfplumber",
           "pages": [4, 5],
-          "notes": "Project extractor uses PMC-style PDF pagination in specs/pdf_extraction_manifest.json (`pages_used: [4, 5]`). MIC for W-peptides in **µM** — normalize to µg/mL via `molecular_weight_da` (see scripts/extract_pdf.py). Rows for MRSA 544 and MRSA 103 are prioritized in extraction; peptide sequences on adjacent pages alongside MW."
+          "notes": "Project extractor uses PMC-style PDF pagination in specs/pdf_extraction_manifest.json (`pages_used: [4, 5]`). MIC values for W-peptides in **µM** (`measurement_unit` canonicalized to `uM`). Rows for MRSA 544 and MRSA 103; peptide sequences extracted from adjacent table lines."
         },
         "notes": "Same corpus as repo PDF `spectrum.00265-24`; **not** the Frontiers PMID DOI incorrectly linked here earlier. Describes centrosymmetric W1–W5 peptides with clinical MRSA context; aligns with MIC values published in µM."
       },
@@ -148,15 +142,57 @@
         "expected_fields": [
           "peptide_sequence", "peptide_name", "organism_source",
           "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "assay_method", "medium"
+          "measurement_type", "measurement_value", "measurement_unit", "assay_method", "medium"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "pdfplumber",
           "pages": [9],
-          "notes": "MDPI pagination can differ between HTML and bundled PDF; specs/pdf_extraction_manifest.json sets pages_used: [9] for this PDF. Printed Table 1 reports MIC versus standard and colistin-resistant pathogens; extractor treats values as uM then converts to ug/mL. Record peptide rows for T. ni and H. cecropia cecropin A; exclude antibiotic controls."
+          "notes": "MDPI pagination can differ between HTML and bundled PDF; specs/pdf_extraction_manifest.json sets pages_used: [9] for this PDF. Printed Table 1 reports MIC versus standard and colistin-resistant pathogens; values stored as µM (`measurement_unit` = `uM`). Record peptide rows for T. ni and H. cecropia cecropin A; exclude antibiotic controls."
         },
-        "notes": "Primary focus: insect and classical cecropin MICs versus standard and colistin-resistant pathogens. Parsed MIC in **µM** with µg/mL normalization for cross-dataset comparisons. Assay defaults in manifest: broth microdilution, MHB-style conditions per article."
+        "notes": "Primary focus: insect and classical cecropin MICs versus standard and colistin-resistant pathogens. Parsed MIC in **µM** as reported. Assay defaults in manifest: broth microdilution, MHB-style conditions per article."
+      },
+      {
+        "source_id": "paper_hu_fmicb_2022_alpha_helix",
+        "name": "Hu et al. — α-helical AMP benchmark with broad MIC panels (Frontiers Microbiology 2022-style)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3389/fmicb.2022.870361",
+        "doi": "10.3389/fmicb.2022.870361",
+        "access_status": "open_access",
+        "access_method": "PDF from journal / PMC",
+        "access_date": "2026-05-24",
+        "license": "CC BY Frontiers publisher terms — verify on landing page.",
+        "expected_data_volume": "medium",
+        "estimated_records": 0,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "pathogen_name", "measurement_value"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "pdfplumber",
+          "notes": "Manifest placeholder (extraction_enabled=false). TABLE 1 reports many peptides vs many bacteria; needs explicit column headers → pathogen mapping."
+        },
+        "notes": "Suggested extension for high row count; not yet extracted in this repo."
+      },
+      {
+        "source_id": "paper_melittin_processes_mdpi",
+        "name": "Melittin-derived AMP selectivity (MDPI Processes 2026-style)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/pr14101630",
+        "doi": "10.3390/pr14101630",
+        "access_status": "open_access",
+        "access_method": "MDPI PDF when available",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 0,
+        "available_data_types": ["tables", "text"],
+        "expected_fields": ["peptide_name", "pathogen_name", "measurement_value"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "pdfplumber",
+          "notes": "Manifest placeholder. MIC in µg/mL for analogues vs Gram-positive and Gram-negative controls in narrative/table form."
+        },
+        "notes": "Suggested second PDF target for a dedicated small parser once the article PDF is pinned in data/raw/pdf/."
       }
     ],
     "supplementary_materials": [
@@ -179,96 +215,6 @@
           "notes": "Antibiotic (non-peptide) MIC controls only. Do NOT extract as peptide records — out of dataset scope. Useful for cross-checking assay conditions and confirming pathogen susceptibility profiles."
         },
         "notes": "Included for completeness and cross-validation. Antibiotic MIC values against the same pathogen panel confirm assay validity. Not extracted as primary records."
-      }
-    ],
-    "aggregators": [
-      {
-        "source_id": "agg_uniprot",
-        "name": "UniProt — Universal Protein Resource",
-        "source_type": "aggregator",
-        "url": "https://www.uniprot.org",
-        "doi": "",
-        "access_status": "open_access",
-        "access_method": "REST API (https://rest.uniprot.org); no authentication required",
-        "access_date": "2026-05-24",
-        "license": "CC BY 4.0",
-        "expected_data_volume": "metadata_only",
-        "estimated_records": 0,
-        "available_data_types": ["protein_names", "identifiers", "organism_taxonomy"],
-        "expected_fields": ["organism_source", "peptide_name"],
-        "extraction_strategy": {
-          "recommended_method": "api_lookup",
-          "tool": "requests",
-          "notes": "Query by peptide name or sequence to retrieve canonical source organism binomial names and UniProt accessions. Use /uniprotkb endpoint. Enrich organism_source field — does not provide MIC values."
-        },
-        "notes": "Metadata enrichment only. Does not provide MIC values. Used to standardize organism_source field to canonical binomial species names (e.g., 'Homo sapiens' instead of 'human')."
-      },
-      {
-        "source_id": "agg_ncbi_taxonomy",
-        "name": "NCBI Taxonomy — National Center for Biotechnology Information",
-        "source_type": "aggregator",
-        "url": "https://www.ncbi.nlm.nih.gov/taxonomy",
-        "doi": "",
-        "access_status": "open_access",
-        "access_method": "Entrez API (Biopython Entrez module); no authentication required beyond NCBI email registration",
-        "access_date": "2026-05-24",
-        "license": "public domain",
-        "expected_data_volume": "metadata_only",
-        "estimated_records": 0,
-        "available_data_types": ["taxonomy", "species_names"],
-        "expected_fields": ["pathogen_name", "gram_stain"],
-        "extraction_strategy": {
-          "recommended_method": "api_lookup",
-          "tool": "Biopython Entrez",
-          "notes": "Fetch canonical species name and taxon ID for each pathogen_name. Used to standardize pathogen names across sources. Gram-stain classification looked up from taxon lineage (Firmicutes → Gram+; Proteobacteria → Gram−)."
-        },
-        "notes": "Metadata enrichment for pathogen fields. Provides canonical pathogen_name and supports gram_stain classification. Does not provide MIC values."
-      }
-    ],
-    "github_repositories": [
-      {
-        "source_id": "gh_dramp_github",
-        "name": "CPU-DRAMP/DRAMP-3.0 — DRAMP 3.0 Source Data on GitHub",
-        "source_type": "github_repository",
-        "url": "https://github.com/CPU-DRAMP/DRAMP-3.0",
-        "doi": "",
-        "access_status": "open_access",
-        "access_method": "git clone or ZIP download; Excel file in repository root",
-        "access_date": "2026-05-24",
-        "license": "CC BY 4.0",
-        "expected_data_volume": "high",
-        "estimated_records": 1000,
-        "available_data_types": ["excel", "sequences"],
-        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value"],
-        "extraction_strategy": {
-          "recommended_method": "import_csv_from_excel",
-          "tool": "pandas (read_excel)",
-          "notes": "Excel workbook contains sequences from 4 databases (DRAMP, APD, DBAASP, CAMP). Cross-reference commit hash for reproducibility. Filter to antibacterial entries with experimental MIC values. Note: this is a snapshot of DRAMP 3.0 data — superseded by DRAMP 4.0 on the download page. Use as provenance cross-check only."
-        },
-        "notes": "Secondary access path for DRAMP data. Useful when the DRAMP downloads page is unavailable. The Excel file covers sequences aggregated from 4 major AMP databases. Verify license: CC BY 4.0 from DRAMP. Record the commit SHA for reproducibility."
-      }
-    ],
-    "ml_datasets": [
-      {
-        "source_id": "ml_qmap",
-        "name": "QMAP Benchmark 2025 — Quantitative MIC/HC50 Regression Benchmark (DBAASP-derived)",
-        "source_type": "ml_dataset",
-        "url": "https://huggingface.co/datasets/anthol42/qmap_benchmark_2025",
-        "doi": "10.64898/2026.02.03.703041",
-        "access_status": "open_access",
-        "access_method": "Hugging Face datasets library: `datasets.load_dataset('anthol42/qmap_benchmark_2025')` or pip install qmap",
-        "access_date": "2026-05-24",
-        "license": "research use (derived from DBAASP; check original DBAASP license for redistribution)",
-        "expected_data_volume": "high",
-        "estimated_records": 500,
-        "available_data_types": ["csv", "structured_records"],
-        "expected_fields": ["peptide_sequence", "pathogen_name", "measurement_value"],
-        "extraction_strategy": {
-          "recommended_method": "huggingface_dataset_import",
-          "tool": "datasets (pip install datasets)",
-          "notes": "QMAP provides pre-split MIC regression datasets for E. coli and S. aureus derived from DBAASP v3. Do NOT use as primary MIC source — use for cross-validation against db_dbaasp records only. Filter to antibacterial (non-antifungal) peptides. Verify each record against the original DBAASP entry by peptide ID before including."
-        },
-        "notes": "Cross-validation source only. QMAP provides homology-aware benchmark splits for MIC prediction, derived from DBAASP. Preprint citation: Lavertu et al., bioRxiv (2026), DOI prefix 10.64898 maps to Cold Spring Harbor Laboratory resolver for newer bioRxiv deposition IDs; canonical link: https://www.biorxiv.org/content/10.64898/2026.02.03.703041v1. MIC splits emphasize E. coli and S. aureus subsets. Duplicate of db_dbaasp primary sourcing — validate rows against live DBAASP entries before reuse."
       }
     ],
     "reference_databases": [

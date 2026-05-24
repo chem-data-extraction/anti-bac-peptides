@@ -1,20 +1,20 @@
 {
-  "pdf_extraction_version": "1.2.0",
+  "pdf_extraction_version": "1.4.0",
   "pdf_extraction_process": "Extract antibacterial peptide MIC records from open-access PDFs via pdfplumber text/table parsing driven by scripts/extract_pdf.py.",
   "output_records_file": "data/extracted/pdf_extracted_records.csv",
-  "schema_version": "0.3.0",
-  "max_records_per_source": null,
+  "schema_version": "0.7.0",
+  "max_records_per_source": 1000,
   "output_columns": [
-    "record_id", "peptide_sequence", "peptide_length", "molecular_weight_da",
-    "peptide_name", "organism_source", "synthesis_type", "peptide_modifications",
+    "record_id", "peptide_sequence",
+    "peptide_name", "organism_source", "synthesis_type",
     "pathogen_name", "pathogen_strain", "gram_stain",
-    "measurement_type", "measurement_value", "normalized_value_ug_ml",
+    "measurement_type", "measurement_value", "measurement_unit",
     "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
     "temperature_c", "incubation_time_h",
     "source_id", "source_type", "publication_year", "source_url", "doi",
     "extraction_method", "extraction_confidence", "notes"
   ],
-  "extraction_note": "PDFs stored under data/raw/pdf/ with publisher filenames. Script resolves paths automatically if pdf_path differs.",
+  "extraction_note": "Place PDF files in data/raw/pdf/ exactly as pdf_path names in input_sources below. Implemented parsers register in TEXT_PARSERS inside scripts/extract_pdf.py.",
   "input_sources": [
     {
       "source_id": "paper_ramata_stunda_2023",
@@ -28,7 +28,6 @@
       "pages_used": [4, 5],
       "expected_content": "Table 1 (p.4): peptide names and sequences. Table 2 (p.5): MIC in ug/mL for E. coli ATCC 25922, P. aeruginosa ATCC 27853, K. pneumoniae ATCC 700603, E. faecium ATCC 19434, S. aureus ATCC 25923, C. acnes ATCC 6919.",
       "extraction_methods": ["pdfplumber"],
-      "extraction_status": "pending",
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "MHB",
@@ -46,11 +45,10 @@
       "pdf_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/pdf/spectrum.00265-24.pdf",
       "doi": "10.1128/spectrum.00265-24",
       "publication_year": 2024,
-      "selection_reason": "Open-access CC BY 4.0. Symmetric W1-W5 peptides; MIC in uM vs MRSA clinical isolates.",
+      "selection_reason": "Open-access Microbiology Spectrum. TABLE 1 (p.4): W1–W5 sequences + measured MW. TABLE 2 (p.5): MIC in µM vs MRSA 544 and MRSA 103.",
       "pages_used": [4, 5],
-      "expected_content": "Table 1 (p.3): sequences and MW. Table 2 (p.4): MIC in uM vs MRSA 544 and MRSA 103.",
+      "expected_content": "Peptide table with lines like 'W1 WRGSGRW-NH2'; MIC table labeled TABLE 2 with MRSA 544/MRSA 103 rows.",
       "extraction_methods": ["pdfplumber"],
-      "extraction_status": "pending",
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "TSB",
@@ -72,7 +70,6 @@
       "pages_used": [9],
       "expected_content": "Table 1 (p.5-6): MIC in uM for cecropin peptides vs 8 bacterial strains. Exclude antibiotic control rows.",
       "extraction_methods": ["pdfplumber"],
-      "extraction_status": "pending",
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "MHB",
@@ -80,6 +77,48 @@
         "inoculum_cfu_ml": "2e5",
         "temperature_c": 37,
         "incubation_time_h": 16
+      }
+    },
+    {
+      "source_id": "paper_hu_fmicb_2022_alpha_helix",
+      "pdf_id": "hu_2022_alpha_helical_amp_screen",
+      "pdf_path": "data/raw/pdf/fmicb-13-870361.pdf",
+      "source_url": "https://doi.org/10.3389/fmicb.2022.870361",
+      "pdf_url": "https://www.frontiersin.org/articles/10.3389/fmicb.2022.870361/pdf",
+      "doi": "10.3389/fmicb.2022.870361",
+      "publication_year": 2022,
+      "selection_reason": "Open-access Frontiers in Microbiology. TABLE 1 (p.8): peptides S1–S60 MIC matrix µg/mL vs 10 CMCC strains; sequences in supplementary material.",
+      "pages_used": [8],
+      "expected_content": "Frontiers filenames often match fmicb-13-<article_no>.pdf. TABLE 1 footnote maps columns 1–10 to pathogens.",
+      "extraction_methods": ["pdfplumber"],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "Mueller-Hinton Broth",
+        "medium_composition": "MHB beef extract/acid hydrolyzate of casein medium as described for MIC assay",
+        "inoculum_cfu_ml": "5e5",
+        "temperature_c": 37,
+        "incubation_time_h": 18
+      }
+    },
+    {
+      "source_id": "paper_melittin_processes_mdpi",
+      "pdf_id": "melittin_derived_amp_processes_2026",
+      "pdf_path": "data/raw/pdf/processes-14-01630.pdf",
+      "source_url": "https://doi.org/10.3390/pr14101630",
+      "pdf_url": "https://www.mdpi.com/2227-9717/14/10/1630/pdf",
+      "doi": "10.3390/pr14101630",
+      "publication_year": 2026,
+      "selection_reason": "Open-access MDPI Processes (2026). Table 3 + Table 4 MIC/MBC grids (µg/mL) for melittin, TT-1, FKW, WKW; sequences in Table 2.",
+      "pages_used": [10, 12, 13],
+      "expected_content": "Canonical download name often processes-<vol>-01630.pdf. Parser reads Table 3 (S. aureus ATCC 25923 MIC) and Table 4 MIC columns.",
+      "extraction_methods": ["pdfplumber"],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "CAMHB",
+        "medium_composition": "cation-adjusted Mueller-Hinton broth; 1% DMSO in assay plates",
+        "inoculum_cfu_ml": "",
+        "temperature_c": 37,
+        "incubation_time_h": 24
       }
     }
   ]

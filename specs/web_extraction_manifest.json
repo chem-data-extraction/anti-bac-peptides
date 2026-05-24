@@ -1,55 +1,83 @@
 {
-  "web_extraction_version": "0.1.0",
+  "web_extraction_version": "1.1.0",
   "output_records_file": "data/extracted/web_extracted_records.csv",
   "script": "scripts/extract_web.py",
+  "schema_version": "0.3.0",
+  "max_records_per_source": 200,
+  "output_columns": [
+    "record_id", "peptide_sequence", "peptide_length", "molecular_weight_da",
+    "peptide_name", "organism_source", "synthesis_type", "peptide_modifications",
+    "pathogen_name", "pathogen_strain", "gram_stain",
+    "measurement_type", "measurement_value", "normalized_value_ug_ml",
+    "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
+    "temperature_c", "incubation_time_h",
+    "source_id", "source_type", "publication_year", "source_url", "doi",
+    "extraction_method", "extraction_confidence", "notes"
+  ],
+  "extraction_note": "DBAASP: POST https://dbaasp.org/api/v1 (search + peptide_card). DRAMP: HTTPS bulk Excel download. Rate limit: 1 s between requests.",
   "input_pages": [
     {
-      "source_id": "db_aptagen",
-      "page_id": "aptagen_thrombin_entries",
-      "url": "https://example.org/aptamer-db/target/thrombin",
-      "access_date": "2026-02-01",
+      "source_id": "db_dbaasp",
+      "page_id": "dbaasp_antibacterial_search",
+      "url": "https://dbaasp.org/api/v1",
+      "api_base": "https://dbaasp.org/api/v1",
+      "access_date": "2026-05-24",
       "access_status": "open_access",
-      "robots_notes": "robots.txt allows crawling of /aptamer-db/ with 1 req/s; respect terms of use.",
-      "selection_reason": "Structured HTML tables listing curated thrombin aptamer Kd values.",
-      "page_type": "database_browse_page",
-      "expected_content": "HTML table with columns: sequence, target, Kd, method",
+      "license": "free for academic use",
+      "robots_notes": "API documented at https://dbaasp.org/help. Use POST form-data, max 1 req/s.",
+      "selection_reason": "Primary database. Per-pathogen MIC with assay conditions. Two-step: search by bacteria target_group, then peptide_card per ID.",
+      "page_type": "rest_api_json",
       "parser_plan": {
-        "tool": "requests + BeautifulSoup",
-        "selectors": {
-          "table": "table.binding-records",
-          "row": "tbody tr",
-          "sequence": "td.seq",
-          "target": "td.target",
-          "value": "td.kd",
-          "unit": "td.unit"
-        }
+        "tool": "requests POST + json",
+        "steps": [
+          {"query": "lookup", "lookup_type": "target_group", "filter": "name contains 'bacter'"},
+          {"query": "search", "target_group_id": "<from_lookup>", "complexity": "monomer", "format": "json"},
+          {"query": "peptide_card", "peptide_id": "<from_search>", "format": "json"}
+        ],
+        "field_mapping": {
+          "peptideCard.sequence": "peptide_sequence",
+          "peptideCard.name": "peptide_name",
+          "peptideCard.mw": "molecular_weight_da",
+          "peptideCard.organism": "organism_source",
+          "targetActivity.target": "pathogen_name",
+          "targetActivity.strain": "pathogen_strain",
+          "targetActivity.value": "measurement_value",
+          "targetActivity.unit": "notes (unit=...)"
+        },
+        "filter": "activityMeasure contains MIC; units ug/mL, uM, mg/L",
+        "normalization": "uM -> ug/mL via molecular_weight_da / 1000"
       },
-      "raw_snapshot_path": "data/raw/web/aptagen_thrombin_entries.html",
-      "extraction_status": "template_pending"
+      "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
+      "extraction_status": "pending"
     },
     {
-      "source_id": "db_aptagen",
-      "page_id": "aptagen_lysozyme_entries",
-      "url": "https://example.org/aptamer-db/target/lysozyme",
-      "access_date": "2026-02-02",
+      "source_id": "db_dramp",
+      "page_id": "dramp_general_dataset_download",
+      "url": "http://dramp.cpu-bioinfor.org/downloads/",
+      "download_url": "http://dramp.cpu-bioinfor.org/downloads/download.php?filename=download_data/DRAMP3.0_new/general_amps.xlsx",
+      "access_date": "2026-05-24",
       "access_status": "open_access",
-      "robots_notes": "Same policy as thrombin browse page.",
-      "selection_reason": "Complements PDF sources for lysozyme aptamer records.",
-      "page_type": "database_browse_page",
-      "expected_content": "Paginated result list with affinity fields",
+      "license": "CC BY 4.0",
+      "robots_notes": "Single bulk download. Cite DRAMP 4.0 (doi: 10.1093/nar/gkae1008).",
+      "selection_reason": "Second database source. General dataset with MIC per target organism. Complements DBAASP coverage.",
+      "page_type": "bulk_download_excel",
       "parser_plan": {
-        "tool": "requests + BeautifulSoup",
-        "selectors": {
-          "table": "table.binding-records",
-          "row": "tbody tr",
-          "sequence": "td.seq",
-          "target": "td.target",
-          "value": "td.kd",
-          "unit": "td.unit"
-        }
+        "tool": "pandas read_excel (openpyxl)",
+        "column_mapping": {
+          "Name": "peptide_name",
+          "Sequence": "peptide_sequence",
+          "Source_Organism": "organism_source",
+          "Synthesis_Type": "synthesis_type",
+          "Target_Organism": "pathogen_name",
+          "MIC_value": "measurement_value",
+          "MIC_unit": "notes (unit=...)",
+          "Assay_Method": "assay_method"
+        },
+        "filter": "numeric MIC_value and bacterial Target_Organism",
+        "normalization": "uM -> ug/mL when MW available"
       },
-      "raw_snapshot_path": "data/raw/web/aptagen_lysozyme_entries.html",
-      "extraction_status": "template_pending"
+      "raw_snapshot_path": "data/raw/web/dramp_general_dataset.xlsx",
+      "extraction_status": "pending"
     }
   ]
 }

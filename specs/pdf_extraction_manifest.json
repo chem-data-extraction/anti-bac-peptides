@@ -1,42 +1,86 @@
 {
-  "pdf_extraction_process": "Extract aptamer–protein binding records from selected PDF sources listed below.",
+  "pdf_extraction_version": "1.2.0",
+  "pdf_extraction_process": "Extract antibacterial peptide MIC records from open-access PDFs via pdfplumber text/table parsing driven by scripts/extract_pdf.py.",
   "output_records_file": "data/extracted/pdf_extracted_records.csv",
+  "schema_version": "0.3.0",
+  "max_records_per_source": null,
+  "output_columns": [
+    "record_id", "peptide_sequence", "peptide_length", "molecular_weight_da",
+    "peptide_name", "organism_source", "synthesis_type", "peptide_modifications",
+    "pathogen_name", "pathogen_strain", "gram_stain",
+    "measurement_type", "measurement_value", "normalized_value_ug_ml",
+    "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
+    "temperature_c", "incubation_time_h",
+    "source_id", "source_type", "publication_year", "source_url", "doi",
+    "extraction_method", "extraction_confidence", "notes"
+  ],
+  "extraction_note": "PDFs stored under data/raw/pdf/ with publisher filenames. Script resolves paths automatically if pdf_path differs.",
   "input_sources": [
     {
-      "source_id": "paper_green_2018",
-      "pdf_id": "green_2018_thrombin_aptamer",
-      "pdf_path": "data/raw/pdf/green_2018_thrombin_aptamer.pdf",
-      "source_url": "https://doi.org/10.1021/example.2018",
-      "doi": "10.1021/example.2018",
-      "selection_reason": "Foundational open-access paper with tabulated Kd values for thrombin-binding aptamers.",
-      "pages_used": [3, 4, 5],
-      "expected_content": "Table 2 with aptamer sequences and SPR Kd values",
-      "extraction_methods": ["pdfplumber_table", "manual_verification"],
-      "extraction_status": "template_pending"
+      "source_id": "paper_ramata_stunda_2023",
+      "pdf_id": "ramata_stunda_2023_amp_ssti",
+      "pdf_path": "data/raw/pdf/antibiotics-12-00551.pdf",
+      "source_url": "https://doi.org/10.3390/antibiotics12030551",
+      "pdf_url": "https://mdpi-res.com/d_attachment/antibiotics/antibiotics-12-00551/article_deploy/antibiotics-12-00551.pdf",
+      "doi": "10.3390/antibiotics12030551",
+      "publication_year": 2023,
+      "selection_reason": "Open-access CC BY 4.0. Table 1: peptide sequences; Table 2: 11x6 MIC matrix in ug/mL against ESKAPE + C. acnes.",
+      "pages_used": [4, 5],
+      "expected_content": "Table 1 (p.4): peptide names and sequences. Table 2 (p.5): MIC in ug/mL for E. coli ATCC 25922, P. aeruginosa ATCC 27853, K. pneumoniae ATCC 700603, E. faecium ATCC 19434, S. aureus ATCC 25923, C. acnes ATCC 6919.",
+      "extraction_methods": ["pdfplumber"],
+      "extraction_status": "pending",
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MHB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "5e5",
+        "temperature_c": 32,
+        "incubation_time_h": 16
+      }
     },
     {
-      "source_id": "paper_lee_2020",
-      "pdf_id": "lee_2020_multiplex_panel",
-      "pdf_path": "data/raw/pdf/lee_2020_multiplex_panel.pdf",
-      "source_url": "https://doi.org/10.1038/example.2020",
-      "doi": "10.1038/example.2020",
-      "selection_reason": "Recent multiplex study with supplementary binding table.",
-      "pages_used": [12, 13],
-      "expected_content": "Main-text summary table and reference to Supplementary Table S3",
-      "extraction_methods": ["camelot_lattice", "manual_verification"],
-      "extraction_status": "template_pending"
+      "source_id": "paper_zhang_2024",
+      "pdf_id": "zhang_2024_symmetric_amp_mrsa",
+      "pdf_path": "data/raw/pdf/spectrum.00265-24.pdf",
+      "source_url": "https://doi.org/10.1128/spectrum.00265-24",
+      "pdf_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/pdf/spectrum.00265-24.pdf",
+      "doi": "10.1128/spectrum.00265-24",
+      "publication_year": 2024,
+      "selection_reason": "Open-access CC BY 4.0. Symmetric W1-W5 peptides; MIC in uM vs MRSA clinical isolates.",
+      "pages_used": [4, 5],
+      "expected_content": "Table 1 (p.3): sequences and MW. Table 2 (p.4): MIC in uM vs MRSA 544 and MRSA 103.",
+      "extraction_methods": ["pdfplumber"],
+      "extraction_status": "pending",
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "TSB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "5e5",
+        "temperature_c": 37,
+        "incubation_time_h": 18
+      }
     },
     {
-      "source_id": "paper_kim_2015",
-      "pdf_id": "kim_2015_lysozyme_aptamer",
-      "pdf_path": "data/raw/pdf/kim_2015_lysozyme_aptamer.pdf",
-      "source_url": "https://doi.org/10.1016/example.2015",
-      "doi": "10.1016/example.2015",
-      "selection_reason": "Older benchmark for lysozyme aptamer with clear assay description.",
-      "pages_used": [6, 7],
-      "expected_content": "Figure caption and Table 1 with Kd in nM",
-      "extraction_methods": ["pymupdf_text", "manual_verification"],
-      "extraction_status": "template_pending"
+      "source_id": "paper_lee_2023",
+      "pdf_id": "lee_2023_tni_cecropin_colrec",
+      "pdf_path": "data/raw/pdf/pharmaceutics-15-01752.pdf",
+      "source_url": "https://doi.org/10.3390/pharmaceutics15061752",
+      "pdf_url": "https://mdpi-res.com/d_attachment/pharmaceutics/pharmaceutics-15-01752/article_deploy/pharmaceutics-15-01752.pdf",
+      "doi": "10.3390/pharmaceutics15061752",
+      "publication_year": 2023,
+      "selection_reason": "Open-access CC BY 4.0. T. ni and H. cecropia cecropin A MIC vs standard and colistin-resistant strains.",
+      "pages_used": [9],
+      "expected_content": "Table 1 (p.5-6): MIC in uM for cecropin peptides vs 8 bacterial strains. Exclude antibiotic control rows.",
+      "extraction_methods": ["pdfplumber"],
+      "extraction_status": "pending",
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MHB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "2e5",
+        "temperature_c": 37,
+        "incubation_time_h": 16
+      }
     }
   ]
 }

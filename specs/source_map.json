@@ -1,7 +1,7 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.0.0",
+  "source_map_version": "1.1.0",
   "source_groups": {
     "databases": [
       {
@@ -81,8 +81,8 @@
     ],
     "scientific_papers": [
       {
-        "source_id": "paper_luo_2023",
-        "name": "Luo et al. 2023 — Comparative Evaluation of AMPs for Skin and Soft Tissue Infections",
+        "source_id": "paper_ramata_stunda_2023",
+        "name": "Ramata-Stunda et al. 2023 — Comparative Evaluation of AMPs for Skin and Soft Tissue Infections (Antibiotics; first author: Anna Ramata-Stunda)",
         "source_type": "scientific_paper",
         "url": "https://doi.org/10.3390/antibiotics12030551",
         "doi": "10.3390/antibiotics12030551",
@@ -107,34 +107,34 @@
         "notes": "Primary paper source. Open access CC BY 4.0. Covers 6 rationally designed AMPs (R1, R10–R14) and 5 reference AMPs (RP556, LZ1, AA139, PA13, Oligo10) against ESKAPE pathogens + C. acnes. All 6 pathogens are clinically relevant. Sequences and MICs in same paper — no cross-referencing needed. Broth microdilution method described in Materials section."
       },
       {
-        "source_id": "paper_wang_2024",
-        "name": "Wang et al. 2024 — Novel Symmetrical AMPs against Resistant Clinical Isolates (PMC11537005)",
+        "source_id": "paper_zhang_2024",
+        "name": "Zhang et al. 2024 — Symmetrical GSG-centered AMPs vs Resistant MRSA/MSSA Strains (Microbiology Spectrum)",
         "source_type": "scientific_paper",
-        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/",
-        "doi": "10.3389/fmicb.2024.1474919",
+        "url": "https://doi.org/10.1128/spectrum.00265-24",
+        "doi": "10.1128/spectrum.00265-24",
         "access_status": "open_access",
-        "access_method": "open-access PDF via PMC or Frontiers (CC BY 4.0)",
+        "access_method": "journal PDF (_Microbiology Spectrum_) or PMC (https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/)",
         "access_date": "2026-05-24",
-        "license": "CC BY 4.0",
+        "license": "Open-access publisher terms — confirm on article landing page.",
         "expected_data_volume": "medium",
         "estimated_records": 40,
         "available_data_types": ["tables", "figures", "text"],
         "expected_fields": [
           "peptide_sequence", "peptide_name", "peptide_modifications",
           "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "assay_method"
+          "measurement_type", "measurement_value", "assay_method", "molecular_weight_da", "normalized_value_ug_ml"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "pdfplumber",
-          "pages": [4, 5, 6],
-          "notes": "MIC table: 5 peptides (W1–W5) vs. S. aureus ATCC 29213, MRSA 544, MRSA 1022, MRSA 10243, E. coli ATCC 25922, P. aeruginosa ATCC 9027, S. epidermidis ATCC 12228. Units in µM — requires conversion to µg/mL using molecular weight. Also includes vancomycin and melittin controls. Sequences in Table or supplementary."
+          "pages": [4, 5],
+          "notes": "Project extractor uses PMC-style PDF pagination in specs/pdf_extraction_manifest.json (`pages_used: [4, 5]`). MIC for W-peptides in **µM** — normalize to µg/mL via `molecular_weight_da` (see scripts/extract_pdf.py). Rows for MRSA 544 and MRSA 103 are prioritized in extraction; peptide sequences on adjacent pages alongside MW."
         },
-        "notes": "Provides MRSA clinical isolate data, which is underrepresented in databases. MIC reported in µM — requires unit conversion (record molecular_weight_da for each peptide). WWW motif peptides. Covers both Gram-positive and Gram-negative standard strains plus clinical MRSA isolates."
+        "notes": "Same corpus as repo PDF `spectrum.00265-24`; **not** the Frontiers PMID DOI incorrectly linked here earlier. Describes centrosymmetric W1–W5 peptides with clinical MRSA context; aligns with MIC values published in µM."
       },
       {
-        "source_id": "paper_cecropin_2023",
-        "name": "Kim et al. 2023 — T. ni Cecropin A vs Colistin-Resistant Escherichia coli",
+        "source_id": "paper_lee_2023",
+        "name": "Lee et al. 2023 — Trichoplusia ni Cecropin A vs Colistin-Resistant Escherichia coli (Pharmaceutics; first author: Hyeju Lee)",
         "source_type": "scientific_paper",
         "url": "https://doi.org/10.3390/pharmaceutics15061752",
         "doi": "10.3390/pharmaceutics15061752",
@@ -153,16 +153,16 @@
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "pdfplumber",
-          "pages": [5, 6],
-          "notes": "Table 1: MIC in µg/mL for T. ni cecropin A, H. cecropia cecropin A, polymyxin B, colistin, melittin against 8 strains: E. coli ATCC 25922, A. baumannii ATCC 19606, P. aeruginosa ATCC 27853, K. pneumoniae ATCC 13883 + 4 colistin-resistant clinical isolates. Record peptide MIC rows only (polymyxin/colistin are antibiotics, not peptides — exclude from dataset). Sequences in Supplementary."
+          "pages": [9],
+          "notes": "MDPI pagination can differ between HTML and bundled PDF; specs/pdf_extraction_manifest.json sets pages_used: [9] for this PDF. Printed Table 1 reports MIC versus standard and colistin-resistant pathogens; extractor treats values as uM then converts to ug/mL. Record peptide rows for T. ni and H. cecropia cecropin A; exclude antibiotic controls."
         },
-        "notes": "Unique for colistin-resistant pathogen coverage — relevant for AMR context. T. ni cecropin A (insect AMP, Trichoplusia ni). H. cecropia cecropin A is the classical reference. Provides a natural AMP benchmark. MIC units µg/mL. Assay: broth microdilution, MHB. Only extract rows for T. ni cecropin and cecropin A (exclude antibiotic controls)."
+        "notes": "Primary focus: insect and classical cecropin MICs versus standard and colistin-resistant pathogens. Parsed MIC in **µM** with µg/mL normalization for cross-dataset comparisons. Assay defaults in manifest: broth microdilution, MHB-style conditions per article."
       }
     ],
     "supplementary_materials": [
       {
-        "source_id": "supp_luo_2023_s1",
-        "name": "Luo et al. 2023 — Supplementary Table S1 (antibiotic controls)",
+        "source_id": "supp_ramata_stunda_2023_s1",
+        "name": "Ramata-Stunda et al. 2023 — Supplementary Table S1 (antibiotic controls)",
         "source_type": "supplementary_data",
         "url": "https://www.mdpi.com/article/10.3390/antibiotics12030551/s1",
         "doi": "10.3390/antibiotics12030551",
@@ -268,7 +268,7 @@
           "tool": "datasets (pip install datasets)",
           "notes": "QMAP provides pre-split MIC regression datasets for E. coli and S. aureus derived from DBAASP v3. Do NOT use as primary MIC source — use for cross-validation against db_dbaasp records only. Filter to antibacterial (non-antifungal) peptides. Verify each record against the original DBAASP entry by peptide ID before including."
         },
-        "notes": "Cross-validation source only. QMAP provides homology-aware benchmark splits for MIC prediction, derived from DBAASP v3. Published in biorXiv 2026 (doi: 10.64898/2026.02.03.703041). Contains MIC values for E. coli (5 datasets) and S. aureus (2 datasets). Each original DBAASP ID is retained, allowing back-referencing. Do not treat as an independent source — records duplicate db_dbaasp; use to detect discrepancies."
+        "notes": "Cross-validation source only. QMAP provides homology-aware benchmark splits for MIC prediction, derived from DBAASP. Preprint citation: Lavertu et al., bioRxiv (2026), DOI prefix 10.64898 maps to Cold Spring Harbor Laboratory resolver for newer bioRxiv deposition IDs; canonical link: https://www.biorxiv.org/content/10.64898/2026.02.03.703041v1. MIC splits emphasize E. coli and S. aureus subsets. Duplicate of db_dbaasp primary sourcing — validate rows against live DBAASP entries before reuse."
       }
     ],
     "reference_databases": [

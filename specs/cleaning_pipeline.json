@@ -1,5 +1,5 @@
 {
-  "pipeline_version": "0.1.0",
+  "pipeline_version": "0.2.0",
   "inputs": [
     "data/extracted/pdf_extracted_records.csv",
     "data/extracted/web_extracted_records.csv"
@@ -19,44 +19,51 @@
     {
       "step_id": "normalize_units",
       "operation": "unit_conversion",
-      "description": "Convert measurement_value to nanomolar (normalized_value_nm) using measurement_unit.",
-      "fields": ["measurement_value", "measurement_unit"],
+      "description": "Ensure normalized_value_ug_ml holds numeric MIC in µg/mL; set measurement_value to null for censored bounds (>X, <X).",
+      "fields": ["measurement_value", "normalized_value_ug_ml"],
       "output_file": "data/interim/merged_records.csv"
     },
     {
       "step_id": "standardize_sequences",
       "operation": "sequence_cleanup",
-      "description": "Uppercase aptamer sequences and remove whitespace or invalid characters.",
-      "fields": ["aptamer_sequence"],
+      "description": "Uppercase peptide sequences and remove whitespace or invalid characters.",
+      "fields": ["peptide_sequence"],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "derive_peptide_length",
+      "operation": "computed_field",
+      "description": "Fill peptide_length from len(peptide_sequence) when missing.",
+      "fields": ["peptide_sequence", "peptide_length"],
       "output_file": "data/interim/merged_records.csv"
     },
     {
       "step_id": "standardize_missing_values",
       "operation": "missing_value_cleanup",
       "description": "Map NA, N/A, -, empty strings to null-like values for pandas export.",
-      "fields": ["measurement_value", "buffer", "notes"],
+      "fields": ["measurement_value", "medium_composition", "peptide_modifications"],
       "output_file": "data/interim/merged_records.csv"
     },
     {
       "step_id": "deduplicate_records",
       "operation": "deduplicate",
-      "description": "Remove duplicate rows sharing record_id or identical sequence+target+value+source.",
-      "fields": ["record_id", "aptamer_sequence", "target_name", "measurement_value", "source_id"],
+      "description": "Remove duplicate rows sharing the same record_id.",
+      "fields": ["record_id"],
       "output_file": "data/interim/merged_records.csv"
-    },
-    {
-      "step_id": "validate_schema",
-      "operation": "validation",
-      "description": "Run rules in specs/validation_rules.json via scripts/validate_project.py.",
-      "input_files": ["data/processed/dataset.csv"],
-      "output_file": "reports/practice_05_cleaning_publication.md"
     },
     {
       "step_id": "export_final_dataset",
       "operation": "export",
-      "description": "Write schema-aligned columns to the publication dataset CSV.",
+      "description": "Write schema-aligned columns to the publication dataset CSV (scripts/clean_dataset.py).",
       "input_files": ["data/interim/merged_records.csv"],
       "output_file": "data/processed/dataset.csv"
+    },
+    {
+      "step_id": "validate_schema",
+      "operation": "validation",
+      "description": "Run rules in specs/validation_rules.json via scripts/validate_project.py on the finalized dataset.",
+      "input_files": ["data/processed/dataset.csv"],
+      "output_file": "reports/practice_05_cleaning_publication.md"
     }
   ]
 }

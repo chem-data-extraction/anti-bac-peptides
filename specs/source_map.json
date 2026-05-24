@@ -1,170 +1,297 @@
 {
-  "topic": "Aptamer–protein binding measurements",
-  "root_query": "aptamer protein binding Kd SPR SELEX experimental affinity",
-  "source_map_version": "0.1.0",
+  "topic": "Antibacterial peptide MIC measurements",
+  "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
+  "source_map_version": "1.0.0",
   "source_groups": {
+    "databases": [
+      {
+        "source_id": "db_dbaasp",
+        "name": "DBAASP v3 — Database of Antimicrobial Activity and Structure of Peptides",
+        "source_type": "database",
+        "url": "https://dbaasp.org",
+        "doi": "10.1093/nar/gkaa991",
+        "access_status": "open_access",
+        "access_method": "REST API (https://dbaasp.org/api/v1) and Advanced Search CSV/JSON/FASTA export; no authentication required",
+        "access_date": "2026-05-24",
+        "license": "free for academic use",
+        "expected_data_volume": "high",
+        "estimated_records": 2000,
+        "available_data_types": ["structured_records", "sequences", "activity_values", "assay_conditions"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "organism_source", "synthesis_type",
+          "peptide_modifications", "pathogen_name", "pathogen_strain", "gram_stain",
+          "measurement_type", "measurement_value", "assay_method", "medium",
+          "inoculum_cfu_ml", "temperature_c", "incubation_time_h", "doi"
+        ],
+        "extraction_strategy": {
+          "recommended_method": "web_api_json",
+          "tool": "requests + Python",
+          "notes": "Use /api/v1/peptides with target_group_id for bacteria; filter by activity_measure_id for MIC. Supports output as JSON, FASTA, CSV. Alternatively, use Advanced Search UI and export CSV. The DBAASP_api_helper_libraries GitHub repo (melomcr/dbaasp_api_helper_libraries) provides wrapper functions. Each peptide record contains a TargetActivity list with per-pathogen MIC values — one record per activity row."
+        },
+        "notes": "Primary database source. DBAASP stores MIC per peptide–pathogen pair with assay conditions (medium, CFU, temperature), matching our schema fields exactly. Contains >15,700 entries as of v3 (2021); continuously updated. Manually curated from primary literature with PubMed links. Covers ribosomal, non-ribosomal, and synthetic peptides. API query for antibacterial MICs: https://dbaasp.org/api/v1?query=search&target_group_id=1&format=json"
+      },
+      {
+        "source_id": "db_dramp",
+        "name": "DRAMP 4.0 — Data Repository of Antimicrobial Peptides",
+        "source_type": "database",
+        "url": "http://dramp.cpu-bioinfor.org",
+        "doi": "10.1093/nar/gkae1008",
+        "access_status": "open_access",
+        "access_method": "bulk download from http://dramp.cpu-bioinfor.org/downloads/ (categorized by activity type); also on figshare and GitHub (CPU-DRAMP/DRAMP-3.0)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "high",
+        "estimated_records": 3000,
+        "available_data_types": ["structured_records", "sequences", "activity_values"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "organism_source", "synthesis_type",
+          "pathogen_name", "measurement_type", "measurement_value", "doi", "publication_year"
+        ],
+        "extraction_strategy": {
+          "recommended_method": "bulk_download_csv",
+          "tool": "pandas",
+          "notes": "Download the 'antibacterial' subset from the downloads page (categorized by activity). The general dataset contains experimentally validated entries with MIC values and target organism annotations. Patent entries may lack assay-condition detail — prefer general dataset. PubMed IDs in activity fields allow tracing to primary papers."
+        },
+        "notes": "Second major database source. DRAMP 4.0 (2024) contains 30,260 entries: 11,612 general, 17,886 patent, 96 clinical. The general dataset (~11k) is the target. DRAMP has ~70% non-overlapping sequences vs APD+CAMP, providing coverage complementary to DBAASP. CC BY 4.0 license permits unrestricted use with citation. DRAMP 4.0 adds serum/protease stability annotations not in DBAASP."
+      },
+      {
+        "source_id": "db_campr4",
+        "name": "CAMPR4 — Collection of Anti-Microbial Peptides (version 4)",
+        "source_type": "database",
+        "url": "https://camp.bicnirrh.res.in",
+        "doi": "10.1093/nar/gkac1012",
+        "access_status": "open_access",
+        "access_method": "web search with export; search by target organism or MIC activity; no bulk API; export individual query results",
+        "access_date": "2026-05-24",
+        "license": "free for academic use",
+        "expected_data_volume": "medium",
+        "estimated_records": 500,
+        "available_data_types": ["structured_records", "sequences", "activity_values"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "organism_source",
+          "pathogen_name", "measurement_type", "measurement_value", "doi"
+        ],
+        "extraction_strategy": {
+          "recommended_method": "web_scrape",
+          "tool": "requests + BeautifulSoup",
+          "notes": "Query by target organism (e.g., Escherichia coli, Staphylococcus aureus) and export results. MIC values are stored per target organism. CAMPR4 has 24,243 sequences (11,827 natural + 12,416 synthetic). Focus on experimentally validated (non-predicted, non-patent) entries with MIC values."
+        },
+        "notes": "Tertiary database source. CAMPR4 uses a separate curation pipeline from DBAASP and DRAMP, capturing records the others may miss. Contains information on N/C terminal modifications and unusual amino acids. Lower priority than DBAASP and DRAMP due to no bulk download API, but provides a useful cross-check."
+      }
+    ],
     "scientific_papers": [
       {
-        "source_id": "paper_green_2018",
-        "name": "Green et al. 2018 – thrombin-binding DNA aptamer",
-        "source_type": "journal_article",
-        "url": "https://doi.org/10.1021/example.2018",
-        "doi": "10.1021/example.2018",
+        "source_id": "paper_luo_2023",
+        "name": "Luo et al. 2023 — Comparative Evaluation of AMPs for Skin and Soft Tissue Infections",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/antibiotics12030551",
+        "doi": "10.3390/antibiotics12030551",
         "access_status": "open_access",
-        "access_method": "publisher PDF download",
-        "access_date": "2026-01-15",
-        "license": "CC-BY-4.0",
-        "expected_data_volume": "low",
-        "estimated_records": 8,
-        "available_data_types": ["tables", "text", "figures"],
-        "expected_fields": ["aptamer_sequence", "target_name", "Kd", "assay_method"],
-        "extraction_strategy": {
-          "recommended_method": "pdf_table_extraction plus manual verification"
-        },
-        "notes": "Primary paper for thrombin aptamer benchmark measurements."
-      },
-      {
-        "source_id": "paper_lee_2020",
-        "name": "Lee et al. 2020 – multiplex aptamer panel",
-        "source_type": "journal_article",
-        "url": "https://doi.org/10.1038/example.2020",
-        "doi": "10.1038/example.2020",
-        "access_status": "subscription",
-        "access_method": "institutional library PDF",
-        "access_date": "2026-01-20",
-        "license": "publisher terms",
+        "access_method": "open-access PDF from MDPI (https://mdpi-res.com/d_attachment/antibiotics/antibiotics-12-00551/article_deploy/antibiotics-12-00551.pdf)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
         "expected_data_volume": "medium",
-        "estimated_records": 25,
-        "available_data_types": ["supplementary_tables"],
-        "expected_fields": ["aptamer_sequence", "target_name", "IC50", "buffer"],
+        "estimated_records": 66,
+        "available_data_types": ["tables", "text", "supplementary_tables"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "peptide_length",
+          "pathogen_name", "pathogen_strain", "gram_stain",
+          "measurement_type", "measurement_value", "assay_method", "medium"
+        ],
         "extraction_strategy": {
-          "recommended_method": "supplementary PDF table parsing"
+          "recommended_method": "pdf_table_extraction",
+          "tool": "pdfplumber or camelot",
+          "pages": [4, 5],
+          "notes": "Table 1 (p.4): peptide names and sequences for all 11 AMPs. Table 2 (p.5): MIC values in µg/mL for E. coli, P. aeruginosa, K. pneumoniae, E. faecium, S. aureus, C. acnes. Supplementary Table S1: antibiotic control MICs (not extracted as peptide records). Assay: broth microdilution, MHB. 6 pathogens × 11 peptides = 66 MIC records."
         },
-        "notes": "Use supplementary Table S3 for binding constants."
+        "notes": "Primary paper source. Open access CC BY 4.0. Covers 6 rationally designed AMPs (R1, R10–R14) and 5 reference AMPs (RP556, LZ1, AA139, PA13, Oligo10) against ESKAPE pathogens + C. acnes. All 6 pathogens are clinically relevant. Sequences and MICs in same paper — no cross-referencing needed. Broth microdilution method described in Materials section."
       },
       {
-        "source_id": "paper_kim_2015",
-        "name": "Kim et al. 2015 – lysozyme-binding aptamer",
-        "source_type": "journal_article",
-        "url": "https://doi.org/10.1016/example.2015",
-        "doi": "10.1016/example.2015",
+        "source_id": "paper_wang_2024",
+        "name": "Wang et al. 2024 — Novel Symmetrical AMPs against Resistant Clinical Isolates (PMC11537005)",
+        "source_type": "scientific_paper",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/",
+        "doi": "10.3389/fmicb.2024.1474919",
         "access_status": "open_access",
-        "access_method": "publisher PDF download",
-        "access_date": "2026-01-18",
-        "license": "CC-BY-NC-ND",
-        "expected_data_volume": "low",
-        "estimated_records": 6,
-        "available_data_types": ["tables", "text"],
-        "expected_fields": ["aptamer_sequence", "target_name", "Kd", "assay_method"],
+        "access_method": "open-access PDF via PMC or Frontiers (CC BY 4.0)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "medium",
+        "estimated_records": 40,
+        "available_data_types": ["tables", "figures", "text"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "peptide_modifications",
+          "pathogen_name", "pathogen_strain", "gram_stain",
+          "measurement_type", "measurement_value", "assay_method"
+        ],
         "extraction_strategy": {
-          "recommended_method": "pdfplumber table extraction"
+          "recommended_method": "pdf_table_extraction",
+          "tool": "pdfplumber",
+          "pages": [4, 5, 6],
+          "notes": "MIC table: 5 peptides (W1–W5) vs. S. aureus ATCC 29213, MRSA 544, MRSA 1022, MRSA 10243, E. coli ATCC 25922, P. aeruginosa ATCC 9027, S. epidermidis ATCC 12228. Units in µM — requires conversion to µg/mL using molecular weight. Also includes vancomycin and melittin controls. Sequences in Table or supplementary."
         },
-        "notes": "Benchmark lysozyme aptamer measurements."
+        "notes": "Provides MRSA clinical isolate data, which is underrepresented in databases. MIC reported in µM — requires unit conversion (record molecular_weight_da for each peptide). WWW motif peptides. Covers both Gram-positive and Gram-negative standard strains plus clinical MRSA isolates."
+      },
+      {
+        "source_id": "paper_cecropin_2023",
+        "name": "Kim et al. 2023 — T. ni Cecropin A vs Colistin-Resistant Escherichia coli",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/pharmaceutics15061752",
+        "doi": "10.3390/pharmaceutics15061752",
+        "access_status": "open_access",
+        "access_method": "open-access PDF from MDPI (https://www.mdpi.com/1999-4923/15/6/1752)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 40,
+        "available_data_types": ["tables", "text", "supplementary"],
+        "expected_fields": [
+          "peptide_sequence", "peptide_name", "organism_source",
+          "pathogen_name", "pathogen_strain", "gram_stain",
+          "measurement_type", "measurement_value", "assay_method", "medium"
+        ],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "pdfplumber",
+          "pages": [5, 6],
+          "notes": "Table 1: MIC in µg/mL for T. ni cecropin A, H. cecropia cecropin A, polymyxin B, colistin, melittin against 8 strains: E. coli ATCC 25922, A. baumannii ATCC 19606, P. aeruginosa ATCC 27853, K. pneumoniae ATCC 13883 + 4 colistin-resistant clinical isolates. Record peptide MIC rows only (polymyxin/colistin are antibiotics, not peptides — exclude from dataset). Sequences in Supplementary."
+        },
+        "notes": "Unique for colistin-resistant pathogen coverage — relevant for AMR context. T. ni cecropin A (insect AMP, Trichoplusia ni). H. cecropia cecropin A is the classical reference. Provides a natural AMP benchmark. MIC units µg/mL. Assay: broth microdilution, MHB. Only extract rows for T. ni cecropin and cecropin A (exclude antibiotic controls)."
       }
     ],
     "supplementary_materials": [
       {
-        "source_id": "supp_lee_2020_s3",
-        "name": "Lee 2020 Supplementary Table S3",
+        "source_id": "supp_luo_2023_s1",
+        "name": "Luo et al. 2023 — Supplementary Table S1 (antibiotic controls)",
         "source_type": "supplementary_data",
-        "url": "https://doi.org/10.1038/example.2020#supplementary",
-        "doi": "10.1038/example.2020",
+        "url": "https://www.mdpi.com/article/10.3390/antibiotics12030551/s1",
+        "doi": "10.3390/antibiotics12030551",
         "access_status": "open_access",
-        "access_method": "supplementary PDF",
-        "access_date": "2026-01-21",
-        "license": "CC-BY-4.0",
-        "expected_data_volume": "medium",
-        "estimated_records": 20,
+        "access_method": "supplementary PDF download from MDPI article page",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 0,
         "available_data_types": ["tables"],
-        "expected_fields": ["aptamer_sequence", "measurement_value", "measurement_unit"],
+        "expected_fields": ["pathogen_name", "measurement_value"],
         "extraction_strategy": {
-          "recommended_method": "Camelot or tabula on supplementary PDF"
+          "recommended_method": "manual_inspection",
+          "notes": "Antibiotic (non-peptide) MIC controls only. Do NOT extract as peptide records — out of dataset scope. Useful for cross-checking assay conditions and confirming pathogen susceptibility profiles."
         },
-        "notes": "Machine-readable tables; preferred over main-text figure values."
-      }
-    ],
-    "databases": [
-      {
-        "source_id": "db_aptagen",
-        "name": "AptaIndex / literature-curated aptamer entries",
-        "source_type": "database",
-        "url": "https://example.org/aptamer-db",
-        "doi": "",
-        "access_status": "open_access",
-        "access_method": "web export and API (if available)",
-        "access_date": "2026-02-01",
-        "license": "CC-BY-4.0",
-        "expected_data_volume": "high",
-        "estimated_records": 200,
-        "available_data_types": ["structured_records", "sequences"],
-        "expected_fields": ["aptamer_sequence", "target_name", "Kd"],
-        "extraction_strategy": {
-          "recommended_method": "web_scrape or bulk CSV download"
-        },
-        "notes": "Cross-check sequences against primary papers when possible."
+        "notes": "Included for completeness and cross-validation. Antibiotic MIC values against the same pathogen panel confirm assay validity. Not extracted as primary records."
       }
     ],
     "aggregators": [
       {
-        "source_id": "agg_uniprot_crossref",
-        "name": "UniProt + Crossref metadata for target proteins",
+        "source_id": "agg_uniprot",
+        "name": "UniProt — Universal Protein Resource",
         "source_type": "aggregator",
-        "url": "https://www.uniprot.org/",
+        "url": "https://www.uniprot.org",
         "doi": "",
         "access_status": "open_access",
-        "access_method": "REST API",
-        "access_date": "2026-02-05",
-        "license": "CC-BY-4.0",
+        "access_method": "REST API (https://rest.uniprot.org); no authentication required",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
         "expected_data_volume": "metadata_only",
         "estimated_records": 0,
-        "available_data_types": ["protein_names", "identifiers"],
-        "expected_fields": ["target_name", "target_type"],
+        "available_data_types": ["protein_names", "identifiers", "organism_taxonomy"],
+        "expected_fields": ["organism_source", "peptide_name"],
         "extraction_strategy": {
-          "recommended_method": "API lookup to standardize target names"
+          "recommended_method": "api_lookup",
+          "tool": "requests",
+          "notes": "Query by peptide name or sequence to retrieve canonical source organism binomial names and UniProt accessions. Use /uniprotkb endpoint. Enrich organism_source field — does not provide MIC values."
         },
-        "notes": "Does not provide binding values; enriches target metadata only."
+        "notes": "Metadata enrichment only. Does not provide MIC values. Used to standardize organism_source field to canonical binomial species names (e.g., 'Homo sapiens' instead of 'human')."
+      },
+      {
+        "source_id": "agg_ncbi_taxonomy",
+        "name": "NCBI Taxonomy — National Center for Biotechnology Information",
+        "source_type": "aggregator",
+        "url": "https://www.ncbi.nlm.nih.gov/taxonomy",
+        "doi": "",
+        "access_status": "open_access",
+        "access_method": "Entrez API (Biopython Entrez module); no authentication required beyond NCBI email registration",
+        "access_date": "2026-05-24",
+        "license": "public domain",
+        "expected_data_volume": "metadata_only",
+        "estimated_records": 0,
+        "available_data_types": ["taxonomy", "species_names"],
+        "expected_fields": ["pathogen_name", "gram_stain"],
+        "extraction_strategy": {
+          "recommended_method": "api_lookup",
+          "tool": "Biopython Entrez",
+          "notes": "Fetch canonical species name and taxon ID for each pathogen_name. Used to standardize pathogen names across sources. Gram-stain classification looked up from taxon lineage (Firmicutes → Gram+; Proteobacteria → Gram−)."
+        },
+        "notes": "Metadata enrichment for pathogen fields. Provides canonical pathogen_name and supports gram_stain classification. Does not provide MIC values."
       }
     ],
     "github_repositories": [
       {
-        "source_id": "gh_aptamer_benchmark",
-        "name": "community/aptamer-binding-benchmark",
+        "source_id": "gh_dramp_github",
+        "name": "CPU-DRAMP/DRAMP-3.0 — DRAMP 3.0 Source Data on GitHub",
         "source_type": "github_repository",
-        "url": "https://github.com/example/aptamer-binding-benchmark",
+        "url": "https://github.com/CPU-DRAMP/DRAMP-3.0",
         "doi": "",
         "access_status": "open_access",
-        "access_method": "git clone",
-        "access_date": "2026-02-10",
-        "license": "MIT",
-        "expected_data_volume": "medium",
-        "estimated_records": 50,
-        "available_data_types": ["csv", "json"],
-        "expected_fields": ["aptamer_sequence", "target_name", "measurement_value"],
+        "access_method": "git clone or ZIP download; Excel file in repository root",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "high",
+        "estimated_records": 1000,
+        "available_data_types": ["excel", "sequences"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value"],
         "extraction_strategy": {
-          "recommended_method": "import released CSV with license check"
+          "recommended_method": "import_csv_from_excel",
+          "tool": "pandas (read_excel)",
+          "notes": "Excel workbook contains sequences from 4 databases (DRAMP, APD, DBAASP, CAMP). Cross-reference commit hash for reproducibility. Filter to antibacterial entries with experimental MIC values. Note: this is a snapshot of DRAMP 3.0 data — superseded by DRAMP 4.0 on the download page. Use as provenance cross-check only."
         },
-        "notes": "Verify commit hash and release tag for reproducibility."
+        "notes": "Secondary access path for DRAMP data. Useful when the DRAMP downloads page is unavailable. The Excel file covers sequences aggregated from 4 major AMP databases. Verify license: CC BY 4.0 from DRAMP. Record the commit SHA for reproducibility."
       }
     ],
     "ml_datasets": [
       {
-        "source_id": "ml_aptamer_kaggle",
-        "name": "Kaggle – Aptamer affinity prediction subset",
+        "source_id": "ml_qmap",
+        "name": "QMAP Benchmark 2025 — Quantitative MIC/HC50 Regression Benchmark (DBAASP-derived)",
         "source_type": "ml_dataset",
-        "url": "https://www.kaggle.com/datasets/example/aptamer-affinity",
-        "doi": "",
-        "access_status": "registration_required",
-        "access_method": "Kaggle API download",
-        "access_date": "2026-02-12",
-        "license": "unknown",
+        "url": "https://huggingface.co/datasets/anthol42/qmap_benchmark_2025",
+        "doi": "10.64898/2026.02.03.703041",
+        "access_status": "open_access",
+        "access_method": "Hugging Face datasets library: `datasets.load_dataset('anthol42/qmap_benchmark_2025')` or pip install qmap",
+        "access_date": "2026-05-24",
+        "license": "research use (derived from DBAASP; check original DBAASP license for redistribution)",
         "expected_data_volume": "high",
         "estimated_records": 500,
-        "available_data_types": ["csv"],
-        "expected_fields": ["aptamer_sequence", "target_name", "label"],
+        "available_data_types": ["csv", "structured_records"],
+        "expected_fields": ["peptide_sequence", "pathogen_name", "measurement_value"],
         "extraction_strategy": {
-          "recommended_method": "document provenance; use only if license permits redistribution"
+          "recommended_method": "huggingface_dataset_import",
+          "tool": "datasets (pip install datasets)",
+          "notes": "QMAP provides pre-split MIC regression datasets for E. coli and S. aureus derived from DBAASP v3. Do NOT use as primary MIC source — use for cross-validation against db_dbaasp records only. Filter to antibacterial (non-antifungal) peptides. Verify each record against the original DBAASP entry by peptide ID before including."
         },
-        "notes": "May mix predicted and experimental values—filter by source column."
+        "notes": "Cross-validation source only. QMAP provides homology-aware benchmark splits for MIC prediction, derived from DBAASP v3. Published in biorXiv 2026 (doi: 10.64898/2026.02.03.703041). Contains MIC values for E. coli (5 datasets) and S. aureus (2 datasets). Each original DBAASP ID is retained, allowing back-referencing. Do not treat as an independent source — records duplicate db_dbaasp; use to detect discrepancies."
+      }
+    ],
+    "reference_databases": [
+      {
+        "source_id": "db_apd6",
+        "name": "APD6 — Antimicrobial Peptide Database (version 6)",
+        "source_type": "reference_database",
+        "url": "https://aps.unmc.edu",
+        "doi": "10.1093/nar/gkae1089",
+        "access_status": "open_access",
+        "access_method": "web search and FASTA download (https://aps.unmc.edu/downloads); no bulk MIC export currently available",
+        "access_date": "2026-05-24",
+        "license": "free for research and education (cite APD3/APD6)",
+        "expected_data_volume": "low",
+        "estimated_records": 0,
+        "available_data_types": ["sequences", "activity_descriptions"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "organism_source"],
+        "extraction_strategy": {
+          "recommended_method": "sequence_cross_validation",
+          "tool": "manual or FASTA download",
+          "notes": "APD6 MIC data is being unified and validated (per APD FAQ as of Jan 2026) — not yet available as a bulk MIC export. Use APD6 only for sequence cross-validation (checking peptide_sequence against canonical APD ID) and peptide name standardization. Do not extract as primary MIC records."
+        },
+        "notes": "Reference database only — NOT a primary MIC source for this project. APD6 (Jan 2026) contains 6,309 peptides (3,379 natural + 2,290 synthetic + 373 predicted). MIC bulk export is pending unification per the APD FAQ. Useful for verifying peptide sequences and names retrieved from DBAASP or DRAMP against the canonical APD entry."
       }
     ]
   }

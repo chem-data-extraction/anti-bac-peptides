@@ -8,13 +8,13 @@ The search was conducted across three independent axes that together cover the f
 
 ### Axis 1 — Specialized AMP databases
 
-The starting point was a survey of purpose-built antimicrobial peptide databases that curate MIC values from primary literature. Three major databases were identified:
+The starting point was a survey of purpose-built antimicrobial peptide databases that curate MIC values from primary literature. Three major databases were identified; **two** (`db_dbaasp`, `db_dramp`) are wired into the final extraction pipeline. CAMPR4 was surveyed but excluded after a trial HTML crawl yielded only 12 MIC rows.
 
 | Database | Version | Size | MIC coverage |
 |----------|---------|------|--------------|
 | DBAASP | v3 (2021, continuously updated) | >15,700 entries | Per peptide–pathogen–assay record; MIC stored with medium, CFU, temperature |
 | DRAMP | v4.0 (2024) | 30,260 entries | General (~11k experimental), patent, clinical; MIC per target organism |
-| CAMPR4 | v4 (2022) | 24,243 sequences | MIC values for experimentally validated entries |
+| CAMPR4 | v4 (2022) | 24,243 sequences | MIC values for experimentally validated entries — **not ingested** (low HTML MIC yield) |
 
 The databases were identified from the following sources:
 - DBAASP: Pirtskhalava et al. 2021, *Nucleic Acids Research* (doi: 10.1093/nar/gkaa991)
@@ -49,16 +49,13 @@ All sources are registered in `specs/source_map.json`. Full machine-readable met
 
 ### Databases (`source_id` prefix: `db_`)
 
-Three databases provide the bulk of structured, experimentally validated MIC records:
+Two databases provide the bulk of structured, experimentally validated MIC records in the final dataset:
 
 **`db_dbaasp`** — DBAASP v3 (https://dbaasp.org).
 The primary database source. DBAASP is the only major AMP database that stores MIC at the resolution of a single peptide–pathogen–assay triple (matching our one-record definition exactly). Each entry in its `TargetActivity` list maps to one row in our dataset. The REST API supports filtered queries by target group (bacteria), target species, and activity measure (MIC). Output formats: JSON, FASTA, CSV. Expected yield: ~2,000 records after filtering to bacteria and records with a numeric MIC value. Manually curated with PubMed back-links.
 
 **`db_dramp`** — DRAMP 4.0 (http://dramp.cpu-bioinfor.org).
-Secondary database source mirrored through the reproducible workbook at `data/raw/web/dramp_general_dataset.xlsx` (see Practice 4 manifest + `FETCHERS["db_dramp"]`). `fetch_dramp()` filters antibacterial rows and mines `(MIC …)` clauses encoded inside **`Target_Organism`**. DRAMP overlaps heavily with DBAASP and primary citations; treat supplementation/dedupe as a downstream Practice 5 decision rather than rejecting rows at ingest.
-
-**`db_campr4`** — CAMPR4 portal (https://camp.bicnirrh.res.in).
-Tertiary database source backed by ICMR CAMPR sequencing browser. Automated extraction (`scripts/extract_web.py`) traverses curated `seqDb.php` pagination, opens each CAMPSQ detail tab, reads `FASTA`/Activity/Target fields and only persists antibacterial rows containing explicit `(MIC …)` clauses in Target text. Yield is capped by modest `campr_max_list_pages`/`max_records` defaults because many peptides lack MIC values on-screen (entries without MIC are intentionally skipped).
+Secondary database source mirrored through the reproducible workbook at `data/raw/web/dramp_general_dataset.xlsx` (see Practice 4 manifest + `FETCHERS["db_dramp"]`). `fetch_dramp()` filters antibacterial rows and mines `(MIC …)` clauses encoded inside **`Target_Organism`**. DRAMP overlaps heavily with DBAASP and primary citations; treat supplementation/dedupe as a downstream Practice 5 decision rather than rejecting rows at ingest.
 
 ### Scientific papers (`source_id` prefix: `paper_`)
 
@@ -94,9 +91,8 @@ Sources are ranked by reliability, expected yield, MIC completeness, and extract
 | 5 | `paper_lee_2023` | Insect AMP natural origin; colistin-resistant isolates |
 | 6 | `paper_hu_fmicb_2022_alpha_helix` | High-density peptide × strain MIC grid (µg/mL); overlaps curated DB literature |
 | 7 | `paper_melittin_processes_mdpi` | Melittin-scaffold analogues + CAMHB MIC tables documented in manifest |
-| 8 | `db_campr4` | HTML-only CAMPR portal enrichment; skips entries without MIC text |
 
-Extraction proceeds **first** along the programmatic database axis (`db_*` ingest), **then** the PDF manifests in roughly this priority tier (dense curated tables → specialist screens/extra PDFs → HTML CAMPR as a tertiary scrape).
+Extraction proceeds **first** along the programmatic database axis (`db_dbaasp`, `db_dramp`), **then** the PDF manifests in roughly this priority tier.
 
 ---
 
@@ -106,7 +102,6 @@ Extraction proceeds **first** along the programmatic database axis (`db_*` inges
 |-----------|--------------|--------------|---------|----------------------|-------|
 | `db_dbaasp` | Open | No | No | No | REST API, no auth; web export also available |
 | `db_dramp` | Open | No | No | No | Direct download from dramp.cpu-bioinfor.org/downloads/ |
-| `db_campr4` | Open | No | No | No | ICMR-hosted HTML UI; scripted polite crawl (~1 s delay) |
 | `paper_ramata_stunda_2023` | Open (CC BY 4.0) | No | No | No | MDPI; direct PDF and HTML access |
 | `paper_zhang_2024` | Open-access | No | No | No | ASM Spectrum / PMC canonical PDF (`spectrum.00265-24`) |
 | `paper_lee_2023` | Open (CC BY 4.0) | No | No | No | MDPI; direct PDF access |
@@ -123,7 +118,6 @@ All sources are freely accessible without institutional subscription. No paywall
 |-----------|------------------|--------|-------------------|
 | `db_dbaasp` | Structured records with per-assay MIC | JSON (API) or CSV (export) | High — each record has defined fields |
 | `db_dramp` | Structured records with target organism MIC | Excel / CSV | High — all fields annotated |
-| `db_campr4` | HTML cards with optional MIC in Target column | Requests + regex | Medium — heterogeneous formatting in Target field |
 | `paper_ramata_stunda_2023` | PDF table (Table 2) | PDF → pdfplumber CSV | High — clean grid table, numeric values |
 | `paper_zhang_2024` | PDF table (MIC grid) | PDF → pdfplumber CSV | Medium — merged cells possible; MIC quoted in µM |
 | `paper_lee_2023` | PDF table (Table 1) | PDF → pdfplumber | High — clean table, explicit strain names |
@@ -136,7 +130,7 @@ All sources are freely accessible without institutional subscription. No paywall
 
 ### Inter-database overlap
 
-DBAASP, DRAMP, and CAMPR4 all curate from the same primary literature, so the same MIC value can appear in multiple databases traced to the same DOI. Expected overlap is significant for well-known peptides (LL-37, magainin-2, defensins).
+DBAASP and DRAMP curate from the same primary literature, so the same MIC value can appear in both databases traced to the same DOI. Expected overlap is significant for well-known peptides (LL-37, magainin-2, defensins).
 
 **Resolution rule:** Keep all database records as separate rows with distinct `source_id` values. Cross-link via shared DOI in the `doi` field and shared peptide sequence. Deduplication (choosing a canonical record per peptide–pathogen pair) is deferred to Practice 5.
 

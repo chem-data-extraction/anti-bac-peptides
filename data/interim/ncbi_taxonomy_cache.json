@@ -1,0 +1,345 @@
+{
+"acinetobacter baumannii": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"acinetobacter baumannii nm109": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"acinetobacter baumannii nm124": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"acinetobacter baumannii nm35": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"acinetobacter baumannii nm75": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"acinetobacter baumannii nm8": {
+"tax_id": 470,
+"scientific_name": "Acinetobacter baumannii",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Moraxellales; Moraxellaceae; Acinetobacter; Acinetobacter calcoaceticus/baumannii complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"bacillus subtilis": {
+"tax_id": 1423,
+"scientific_name": "Bacillus subtilis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Bacillaceae; Bacillus; Bacillus subtilis group",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"bacillus subtilis kctc 3068": {
+"tax_id": 1423,
+"scientific_name": "Bacillus subtilis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Bacillaceae; Bacillus; Bacillus subtilis group",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"bacillus subtilis py22": {
+"tax_id": 1423,
+"scientific_name": "Bacillus subtilis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Bacillaceae; Bacillus; Bacillus subtilis group",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"cutibacterium acnes": {
+"tax_id": 1747,
+"scientific_name": "Cutibacterium acnes",
+"lineage": "cellular organisms; Bacteria; Bacillati; Actinomycetota; Actinomycetes; Propionibacteriales; Propionibacteriaceae; Cutibacterium",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"enterococcus faecalis": {
+"tax_id": 1351,
+"scientific_name": "Enterococcus faecalis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Enterococcaceae; Enterococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"enterococcus faecium": {
+"tax_id": 1352,
+"scientific_name": "Enterococcus faecium",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Enterococcaceae; Enterococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"escherichia coli": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli d31": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli dh5alpha": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli esbl": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli k-12": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli kctc 1682": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli ml-35p": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"escherichia coli o157:h7": {
+"tax_id": 562,
+"scientific_name": "Escherichia coli",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Escherichia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"klebsiella pneumoniae": {
+"tax_id": 573,
+"scientific_name": "Klebsiella pneumoniae",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Klebsiella; Klebsiella pneumoniae complex",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"listeria monocytogenes": {
+"tax_id": 1639,
+"scientific_name": "Listeria monocytogenes",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Listeriaceae; Listeria",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"listeria monocytogenes egd": {
+"tax_id": 1639,
+"scientific_name": "Listeria monocytogenes",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Listeriaceae; Listeria",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"micrococcus luteus": {
+"tax_id": 1270,
+"scientific_name": "Micrococcus luteus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Actinomycetota; Actinomycetes; Micrococcales; Micrococcaceae; Micrococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"mycobacterium avium": {
+"tax_id": 1764,
+"scientific_name": "Mycobacterium avium",
+"lineage": "cellular organisms; Bacteria; Bacillati; Actinomycetota; Actinomycetes; Mycobacteriales; Mycobacteriaceae; Mycobacterium; Mycobacterium avium complex (MAC)",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"mycobacterium tuberculosis": {
+"tax_id": 1773,
+"scientific_name": "Mycobacterium tuberculosis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Actinomycetota; Actinomycetes; Mycobacteriales; Mycobacteriaceae; Mycobacterium; Mycobacterium tuberculosis complex",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"neisseria gonorrhoeae": {
+"tax_id": 485,
+"scientific_name": "Neisseria gonorrhoeae",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Betaproteobacteria; Neisseriales; Neisseriaceae; Neisseria",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"proteus vulgaris": {
+"tax_id": 585,
+"scientific_name": "Proteus vulgaris",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Morganellaceae; Proteus",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"pseudomonas aeruginosa": {
+"tax_id": 287,
+"scientific_name": "Pseudomonas aeruginosa",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Pseudomonadales; Pseudomonadaceae; Pseudomonas; Pseudomonas aeruginosa group",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"pseudomonas aeruginosa kctc 1637": {
+"tax_id": 287,
+"scientific_name": "Pseudomonas aeruginosa",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Pseudomonadales; Pseudomonadaceae; Pseudomonas; Pseudomonas aeruginosa group",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"salmonella enterica": {
+"tax_id": 28901,
+"scientific_name": "Salmonella enterica",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Salmonella",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"salmonella enterica subsp. enterica serovar typhimurium": {
+"tax_id": 28901,
+"scientific_name": "Salmonella enterica",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Salmonella",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"salmonella typhimurium kctc 1926": {
+"tax_id": null,
+"scientific_name": null,
+"lineage": null,
+"gram_inferred": null,
+"lookup_error": "esearch_no_hit"
+},
+"serratia marcescens": {
+"tax_id": 615,
+"scientific_name": "Serratia marcescens",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Yersiniaceae; Serratia",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"serratia sp.": {
+"tax_id": null,
+"scientific_name": null,
+"lineage": null,
+"gram_inferred": null,
+"lookup_error": "esearch_no_hit"
+},
+"shigella dysenteriae": {
+"tax_id": 622,
+"scientific_name": "Shigella dysenteriae",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Shigella",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"shigella sonnei": {
+"tax_id": 624,
+"scientific_name": "Shigella sonnei",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Enterobacterales; Enterobacteriaceae; Shigella",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"staphylococcus aureus": {
+"tax_id": 1280,
+"scientific_name": "Staphylococcus aureus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus aureus kctc 1621": {
+"tax_id": 1280,
+"scientific_name": "Staphylococcus aureus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus aureus mr": {
+"tax_id": 1280,
+"scientific_name": "Staphylococcus aureus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus aureus usa 300": {
+"tax_id": 1280,
+"scientific_name": "Staphylococcus aureus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus epidermidis": {
+"tax_id": 1282,
+"scientific_name": "Staphylococcus epidermidis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus epidermidis kctc 1917": {
+"tax_id": 1282,
+"scientific_name": "Staphylococcus epidermidis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"staphylococcus saprophyticus": {
+"tax_id": 29385,
+"scientific_name": "Staphylococcus saprophyticus",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Caryophanales; Staphylococcaceae; Staphylococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"stenotrophomonas maltophilia": {
+"tax_id": 40324,
+"scientific_name": "Stenotrophomonas maltophilia",
+"lineage": "cellular organisms; Bacteria; Pseudomonadati; Pseudomonadota; Gammaproteobacteria; Lysobacterales; Lysobacteraceae; Stenotrophomonas; Stenotrophomonas maltophilia group",
+"gram_inferred": "Gram-negative",
+"lookup_error": null
+},
+"streptococcus agalactiae": {
+"tax_id": 1311,
+"scientific_name": "Streptococcus agalactiae",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Streptococcaceae; Streptococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"streptococcus mutans": {
+"tax_id": 1309,
+"scientific_name": "Streptococcus mutans",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Streptococcaceae; Streptococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"streptococcus pneumoniae": {
+"tax_id": 1313,
+"scientific_name": "Streptococcus pneumoniae",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Streptococcaceae; Streptococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+},
+"streptococcus sanguinis": {
+"tax_id": 1305,
+"scientific_name": "Streptococcus sanguinis",
+"lineage": "cellular organisms; Bacteria; Bacillati; Bacillota; Bacilli; Lactobacillales; Streptococcaceae; Streptococcus",
+"gram_inferred": "Gram-positive",
+"lookup_error": null
+}
+}

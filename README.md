@@ -81,6 +81,12 @@ python scripts/extract_pdf.py
 python scripts/extract_web.py
 ```
 
+### Peptide-MIC specifics (this repository)
+
+- **Web extraction** aggregates **three** registered sources declared in [`specs/web_extraction_manifest.json`](specs/web_extraction_manifest.json): `db_dbaasp`, `db_dramp`, `db_campr4` (`scripts/extract_web.py`).
+- DRAMP ingestion reads the bundled workbook **`data/raw/web/dramp_general_dataset.xlsx`** (replace with fresh DRAMP antibacterial exports following the documented column naming).
+- CAMPR/CAMP traversal is HTML-only (`seqDb` listings → `seqDisp` detail scrape) and politely rate-limited; expect **many peptides without on-page MIC**, which are intentionally skipped rather than interpolated.
+- **Measurements** remain in native publication/UI text: verbatim strings in **`measurement_value`** and canonical labels (**`measurement_unit`**) via **`scripts/utils.py`** — no automatic µM→µg/mL conversion anywhere in-repo.
 ## License and citation
 
 - Replace the placeholder in **`LICENSE`** before publication (e.g. CC-BY-4.0 or CC0-1.0, subject to upstream source licenses).

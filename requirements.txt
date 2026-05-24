@@ -3,3 +3,4 @@ pytest
 requests
 openpyxl
 pdfplumber
+beautifulsoup4

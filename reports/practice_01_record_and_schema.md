@@ -41,12 +41,9 @@ Pathogen coverage is **broad**: any bacterial pathogen for which an experimental
 |-------|----------|---------------|
 | `record_id` | yes | Stable ID: `rec_{peptide}_{pathogen}_{source}_{nnn}` |
 | `peptide_sequence` | no | Single-letter amino acid code from paper/table/database |
-| `peptide_length` | no | Computed from `peptide_sequence` (residue count) |
-| `molecular_weight_da` | no | Computed from sequence; required for µM→µg/mL conversion |
 | `peptide_name` | no | Common name (LL-37, magainin-2) when reported |
 | `organism_source` | no | Biological origin: binomial species name, or `synthetic` |
 | `synthesis_type` | no | `ribosomal` / `nonribosomal` / `synthetic` / `unknown` |
-| `peptide_modifications` | no | Structured: "C-terminal amidation", "D-amino acids", "cyclic", etc. |
 
 ### Target organism
 
@@ -62,7 +59,9 @@ Pathogen coverage is **broad**: any bacterial pathogen for which an experimental
 |-------|----------|---------------|
 | `measurement_type` | yes | Always `MIC` for this dataset |
 | `measurement_value` | no | Verbatim MIC from the source: number, censored (`>128`), ranges, symbols as reported |
-| `normalized_value_ug_ml` | no | Comparable MIC text in µg/mL when a scalar conversion applies; censored/normalization notes may mirror the bound |
+| `measurement_unit` | no | Canonical unit label from the extractor (`ug/mL`, `uM`, `mg/L`, etc.) |
+
+Values are kept **in publication units**; downstream consumers normalize if needed.
 
 ### Assay conditions
 
@@ -93,12 +92,12 @@ Full field definitions with types and normalization rules: `specs/dataset_schema
 ## Ambiguous cases
 
 - **One peptide, multiple strains of the same species** → separate records with different `pathogen_strain`.
-- **MIC reported as a range ("4–8 µg/mL")** → `measurement_value` keeps the verbatim range string (`4-8`) when typed that way by the extractor; normalization may stay empty or mirror cautiously via `normalized_value_ug_ml`.
-- **MIC > 128 µg/mL ("`>128`")** → preserve `>` / `<` in `measurement_value`; `normalized_value_ug_ml` may carry the same bound with converted units when tractable.
-- **Modified peptides (D-amino acids, cyclization, N-terminal modifications)** → canonical sequence in `peptide_sequence`; modification detail in `peptide_modifications`.
-- **Synthetic peptide known only by name / structure in the publication** → optional `peptide_sequence`; anchor on `peptide_name` and `peptide_modifications` until the sequence can be inferred from supplementary material.
+- **MIC reported as a range ("4–8 µg/mL")** → `measurement_value` keeps the verbatim range string (`4-8`) when typed that way by the extractor; optionally describe range semantics in extractor `notes`.
+- **MIC > 128 µg/mL ("`>128`")** → preserve `>` / `<` in `measurement_value`.
+- **Modified peptides (D-amino acids, cyclization, N-terminal modifications)** → describe in extractor `notes` if needed; canonical sequence stays in `peptide_sequence`.
+- **Synthetic peptide known only by name / structure in the publication** → optional `peptide_sequence`; anchor on `peptide_name` until the sequence can be inferred from supplementary material.
 - **Duplicate in paper and database** → allow separate source rows upstream; downstream cleaning collapses identical rows (all fields except `record_id`).
-- **Different units (µg/mL vs µM)** → verbatim concentration in `measurement_value`; original unit in extractor `notes`; conversion to µg/mL in `normalized_value_ug_ml` uses `molecular_weight_da` when available.
+- **Different units (µg/mL vs µM)** → verbatim concentration in `measurement_value`; `measurement_unit` holds the canonicalized label (`ug/mL`, `uM`, …).
 - **Standard medium with no extra details** → `medium` = `MHB`; `medium_composition` = null.
 - **Modified medium (e.g. "MHB + 150 mM NaCl")** → `medium` = `MHB`; `medium_composition` = `150 mM NaCl`.
 - **Synthetic / de-novo designed peptide with no natural source** → `organism_source` = `synthetic`; `synthesis_type` = `synthetic`.

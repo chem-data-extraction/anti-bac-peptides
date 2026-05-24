@@ -1,5 +1,5 @@
 {
-  "pipeline_version": "0.6.0",
+  "pipeline_version": "0.7.0",
   "inputs": [
     "data/extracted/pdf_extracted_records.csv",
     "data/extracted/web_extracted_records.csv"
@@ -19,7 +19,7 @@
     {
       "step_id": "drop_non_bacterial_pathogens",
       "operation": "filter",
-      "description": "Remove rows whose pathogen_name matches yeast/fungal/virus/mammalian substring hints (scripts/pathogen_filters.py).",
+      "description": "Remove rows whose pathogen_name matches yeast/fungal/virus/mammalian substring hints (helpers in scripts/utils.py).",
       "fields": ["pathogen_name"],
       "output_file": "data/interim/merged_records.csv"
     },
@@ -64,14 +64,6 @@
       "description": "Run rules in specs/validation_rules.json via scripts/validate_project.py on the finalized dataset.",
       "input_files": ["data/processed/dataset.csv"],
       "output_file": "reports/practice_05_cleaning_publication.md"
-    },
-    {
-      "step_id": "load_quality_markdown_report",
-      "operation": "report",
-      "description": "Optional: row counts per source_id and column fill rates via scripts/report_load_quality.py → reports/load_quality_latest.md",
-      "input_files": ["data/processed/dataset.csv"],
-      "output_file": "reports/load_quality_latest.md",
-      "script": "scripts/report_load_quality.py"
     }
   ]
 }

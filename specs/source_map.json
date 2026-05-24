@@ -1,7 +1,7 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.5.0",
+  "source_map_version": "1.7.0",
   "source_groups": {
     "databases": [
       {
@@ -28,7 +28,7 @@
           "tool": "scripts/extract_web.py → fetch_dbaasp",
           "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (`mic_normalization`)."
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (see scripts/utils.py)."
       },
       {
         "source_id": "db_dramp",
@@ -86,7 +86,7 @@
         "license": "CC BY 4.0",
         "expected_data_volume": "medium",
         "estimated_records": 66,
-        "available_data_types": ["tables", "text", "supplementary_tables"],
+        "available_data_types": ["tables", "text"],
         "expected_fields": [
           "peptide_sequence", "peptide_name",
           "pathogen_name", "pathogen_strain", "gram_stain",
@@ -96,7 +96,7 @@
           "recommended_method": "pdf_table_extraction",
           "tool": "pdfplumber or camelot",
           "pages": [4, 5],
-          "notes": "Table 1 (p.4): peptide names and sequences for all 11 AMPs. Table 2 (p.5): MIC values in µg/mL for E. coli, P. aeruginosa, K. pneumoniae, E. faecium, S. aureus, C. acnes. Supplementary Table S1: antibiotic control MICs (not extracted as peptide records). Assay: broth microdilution, MHB. 6 pathogens × 11 peptides = 66 MIC records."
+          "notes": "Table 1 (p.4): peptide names and sequences for all 11 AMPs. Table 2 (p.5): MIC values in µg/mL for E. coli, P. aeruginosa, K. pneumoniae, E. faecium, S. aureus, C. acnes. Assay: broth microdilution, MHB. 6 pathogens × 11 peptides = 66 MIC records."
         },
         "notes": "Primary paper source. Open access CC BY 4.0. Covers 6 rationally designed AMPs (R1, R10–R14) and 5 reference AMPs (RP556, LZ1, AA139, PA13, Oligo10) against ESKAPE pathogens + C. acnes. All 6 pathogens are clinically relevant. Sequences and MICs in same paper — no cross-referencing needed. Broth microdilution method described in Materials section."
       },
@@ -154,90 +154,47 @@
       },
       {
         "source_id": "paper_hu_fmicb_2022_alpha_helix",
-        "name": "Hu et al. — α-helical AMP benchmark with broad MIC panels (Frontiers Microbiology 2022-style)",
+        "name": "Hu et al. — α-helical AMP benchmark with broad MIC panels (Frontiers in Microbiology, 2022)",
         "source_type": "scientific_paper",
         "url": "https://doi.org/10.3389/fmicb.2022.870361",
         "doi": "10.3389/fmicb.2022.870361",
         "access_status": "open_access",
-        "access_method": "PDF from journal / PMC",
+        "access_method": "Open-access Frontiers PDF (`data/raw/pdf/fmicb-13-870361.pdf`; see `pdf_extraction_manifest.json`)",
         "access_date": "2026-05-24",
         "license": "CC BY Frontiers publisher terms — verify on landing page.",
-        "expected_data_volume": "medium",
-        "estimated_records": 0,
+        "expected_data_volume": "high",
+        "estimated_records": 600,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "pathogen_name", "measurement_value"],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
-          "tool": "pdfplumber",
-          "notes": "Manifest placeholder (extraction_enabled=false). TABLE 1 reports many peptides vs many bacteria; needs explicit column headers → pathogen mapping."
+          "tool": "scripts/extract_pdf.py → parse_hu_fmicb_text (pdfplumber)",
+          "pages": [8],
+          "notes": "TABLE 1 (manifest `pages_used: [8]`): peptide codes S1–S60 MIC matrix in µg/mL vs CMCC reference strains; caption maps columns to pathogens. Final row counts depend on parsing success and optional `max_records_per_source` cap in the PDF manifest."
         },
-        "notes": "Suggested extension for high row count; not yet extracted in this repo."
+        "notes": "Bench-style high-density MIC grid; overlaps literature/DB rows for classic AMPs expected. Wired in-repo with PMC/Frontiers-style PDF under `pdf_path` in `specs/pdf_extraction_manifest.json`."
       },
       {
         "source_id": "paper_melittin_processes_mdpi",
-        "name": "Melittin-derived AMP selectivity (MDPI Processes 2026-style)",
+        "name": "Melittin-derived AMP analogues — MDPI Processes (2026)",
         "source_type": "scientific_paper",
         "url": "https://doi.org/10.3390/pr14101630",
         "doi": "10.3390/pr14101630",
         "access_status": "open_access",
-        "access_method": "MDPI PDF when available",
+        "access_method": "Open-access MDPI PDF (`data/raw/pdf/processes-14-01630.pdf`; see manifest)",
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
-        "expected_data_volume": "low",
-        "estimated_records": 0,
+        "expected_data_volume": "medium",
+        "estimated_records": 80,
         "available_data_types": ["tables", "text"],
         "expected_fields": ["peptide_name", "pathogen_name", "measurement_value"],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
-          "tool": "pdfplumber",
-          "notes": "Manifest placeholder. MIC in µg/mL for analogues vs Gram-positive and Gram-negative controls in narrative/table form."
+          "tool": "scripts/extract_pdf.py → parse_melittin_processes_text (pdfplumber)",
+          "pages": [10, 12, 13],
+          "notes": "Manifest `pages_used: [10, 12, 13]`: peptide sequences plus MIC/MBC-style tables for melittin, TT-1, FKW, WKW vs Gram-positive/Gram-negative panels; values in µg/mL in CAMHB (+ DMSO per Methods)."
         },
-        "notes": "Suggested second PDF target for a dedicated small parser once the article PDF is pinned in data/raw/pdf/."
-      }
-    ],
-    "supplementary_materials": [
-      {
-        "source_id": "supp_ramata_stunda_2023_s1",
-        "name": "Ramata-Stunda et al. 2023 — Supplementary Table S1 (antibiotic controls)",
-        "source_type": "supplementary_data",
-        "url": "https://www.mdpi.com/article/10.3390/antibiotics12030551/s1",
-        "doi": "10.3390/antibiotics12030551",
-        "access_status": "open_access",
-        "access_method": "supplementary PDF download from MDPI article page",
-        "access_date": "2026-05-24",
-        "license": "CC BY 4.0",
-        "expected_data_volume": "low",
-        "estimated_records": 0,
-        "available_data_types": ["tables"],
-        "expected_fields": ["pathogen_name", "measurement_value"],
-        "extraction_strategy": {
-          "recommended_method": "manual_inspection",
-          "notes": "Antibiotic (non-peptide) MIC controls only. Do NOT extract as peptide records — out of dataset scope. Useful for cross-checking assay conditions and confirming pathogen susceptibility profiles."
-        },
-        "notes": "Included for completeness and cross-validation. Antibiotic MIC values against the same pathogen panel confirm assay validity. Not extracted as primary records."
-      }
-    ],
-    "reference_databases": [
-      {
-        "source_id": "db_apd6",
-        "name": "APD6 — Antimicrobial Peptide Database (version 6)",
-        "source_type": "reference_database",
-        "url": "https://aps.unmc.edu",
-        "doi": "10.1093/nar/gkae1089",
-        "access_status": "open_access",
-        "access_method": "web search and FASTA download (https://aps.unmc.edu/downloads); no bulk MIC export currently available",
-        "access_date": "2026-05-24",
-        "license": "free for research and education (cite APD3/APD6)",
-        "expected_data_volume": "low",
-        "estimated_records": 0,
-        "available_data_types": ["sequences", "activity_descriptions"],
-        "expected_fields": ["peptide_sequence", "peptide_name", "organism_source"],
-        "extraction_strategy": {
-          "recommended_method": "sequence_cross_validation",
-          "tool": "manual or FASTA download",
-          "notes": "APD6 MIC data is being unified and validated (per APD FAQ as of Jan 2026) — not yet available as a bulk MIC export. Use APD6 only for sequence cross-validation (checking peptide_sequence against canonical APD ID) and peptide name standardization. Do not extract as primary MIC records."
-        },
-        "notes": "Reference database only — NOT a primary MIC source for this project. APD6 (Jan 2026) contains 6,309 peptides (3,379 natural + 2,290 synthetic + 373 predicted). MIC bulk export is pending unification per the APD FAQ. Useful for verifying peptide sequences and names retrieved from DBAASP or DRAMP against the canonical APD entry."
+        "notes": "Adds melittin-scaffold analogue coverage complementary to rational-design screens. Parser and PDF path pinned in-repo (`specs/pdf_extraction_manifest.json`)."
       }
     ]
   }

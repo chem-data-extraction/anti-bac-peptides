@@ -37,7 +37,7 @@
           "targetActivities[].unit": "measurement_unit"
         },
         "filter": "Monomers only; MIC activity measure; bacterial targets.",
-        "notes": "verbatim MIC text; canonical units via mic_normalization.py only."
+        "notes": "verbatim MIC text; canonical units via scripts/utils.py only."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
       "extraction_status": "pending"

@@ -1,75 +1,73 @@
 # Practice 4 — Web extraction
 
-## Selected web sources
+## Selected web sources (`specs/web_extraction_manifest.json`)
 
-| source_id | page_id | URL |
-|-----------|---------|-----|
-| db_dbaasp | dbaasp_antibacterial_search | https://dbaasp.org/api/v1 |
-| db_dramp | dramp_general_dataset_download | https://dramp.cpu-bioinfor.org/downloads/ |
+| source_id | page_id | Endpoint / artefact |
+|-----------|---------|---------------------|
+| `db_dbaasp` | dbaasp_peptide_cards | `GET https://dbaasp.org/peptides?page=&size=` + `/peptides/{id}?format=json` |
+| `db_dramp` | dramp_general_workbook | Local Excel at `data/raw/web/dramp_general_dataset.xlsx` (`general_amps` sheet) |
+| `db_campr4` | campr4_sequence_browser | HTML list `{orig}/seqDb.php?page={page}&natural=natural` + detail `seqDisp.php?id=CAMPSQ…` |
 
-## Why these sites were selected
+No other programmatic web pipelines are wired in [`scripts/extract_web.py`](../scripts/extract_web.py). Optional aggregators/benchmark archives (UniProt lookups, HF mirrors, etc.) are **out of scope** for Practice 4 unless a future extractor registers them explicitly in both the manifest **and** `FETCHERS`.
 
-**DBAASP v3** is the primary curated AMP database with per-pathogen MIC, assay medium, inoculum, and temperature — fields that map directly to our schema. REST API is documented at https://dbaasp.org/help and free for academic use.
+## Why these endpoints were selected
 
-**DRAMP 4.0** provides a bulk Excel general dataset (~11k experimental entries) under CC BY 4.0, with ~70% sequence novelty vs DBAASP — useful complementary coverage.
+- **DBAASP** exposes fully structured peptide cards (`targetActivities[]`) aligned with [`specs/dataset_schema.json`](../specs/dataset_schema.json) (medium text, CFU metadata, verbatim MIC concentrations).
+- **DRAMP** provides CC BY 4.0 bulk datasets; the curator workbook already present in-repo mirrors the upstream column layout for rapid reproducibility (`DRAMP_ID`, `Sequence`, `Target_Organism`…).
+- **CAMPR/CAMPR4** complements DBAASP/DRAMP on older literature peptides; MIC numbers only appear inconsistently inside the curated `Target` HTML field — the extractor opportunistically harvests clauses such as `(MIC = 60 microg/ml)`.
 
-Both sources are open access, structured, and reproducible via `scripts/extract_web.py`.
-
-## API / page structure
+## Retrieval mechanism & provenance tooling
 
 ### DBAASP
 
-- **Base URL:** `GET https://dbaasp.org/peptides` (JSON list pagination)
-- **Step 1 — list:** `?page=&size=` → peptide summaries (`id`, complexity filtered to monomer in script)
-- **Step 2 — detail:** `GET https://dbaasp.org/peptides/{id}?format=json` → sequence + `targetActivities[]` MIC rows
-- **Rate limit:** 1 request/second (enforced in script)
-- **Snapshot:** `data/raw/web/dbaasp_antibacterial_search.json` (page metadata JSON written by script)
+- Pagination over JSON lists; complexity filter restricts to **monomer** peptides.
+- Each accepted card triggers exactly one MIC row **per bacterial** `targetActivities[]` MIC entry.
+- `extraction_method`: `web_api`
+- Snapshot: [`data/raw/web/dbaasp_antibacterial_search.json`](../data/raw/web/dbaasp_antibacterial_search.json) lists `{page,count,totalCount}` metadata emitted by [`scripts/extract_web.py`](../scripts/extract_web.py).
 
 ### DRAMP
 
-- **Download:** `GET https://dramp.cpu-bioinfor.org/downloads/files/download/DRAMP_generalData.xlsx`
-- **Format:** Excel workbook, parsed with `pandas.read_excel(..., engine="openpyxl")`
-- **Cache validation:** file must start with ZIP magic bytes (`PK`) and be >1 KB; invalid cache is re-downloaded
-- **Snapshot:** `data/raw/web/dramp_general_dataset.xlsx`
+- `pandas.read_excel` over the workbook path declared under `local_workbook_path`.
+- `Activity` rows must contain *Antibacterial*; MIC segments are mined from **`Target_Organism`** parentheses using `(MIC …)` clauses.
+- `extraction_method`: `local_bulk_xlsx`, `extraction_confidence`: `medium`.
+- Snapshot: [`data/raw/web/dramp_extraction_run_meta.json`](../data/raw/web/dramp_extraction_run_meta.json) captures relative path + row counts + workbook mtime for audit trails.
 
-## Extraction methods
+### CAMPR (`db_campr4`)
 
-| Source | Tool | Method label (log / `extraction_method` in rows) |
-|--------|------|---------------------------------------------------|
-| DBAASP | `requests` GET + JSON (`/peptides`) | `web_api` |
-| DRAMP | `requests` GET + `pandas`/`openpyxl` | `bulk_download_excel` |
+- Parses listing HTML for anchors `seqDisp.php?id=CAMPSQ####`.
+- Sequence column is scraped from `<td class="fasta">…`.
+- Rows require `Activity == Antibacterial` (substring match), and at least **one parsable MIC parenthesis** inside `Target`.
+- `extraction_method`: `web_html_seed_list`, `extraction_confidence`: `medium`.
+- Listing harvest metadata: [`data/raw/web/campr4_harvest_snapshot.json`](../data/raw/web/campr4_harvest_snapshot.json) (dictionary of `{page_index: [...ids discovered]}`).
+- Honour `campr_max_list_pages`, `campr_list_page_first`, and `rate_limit_s` knobs to stay polite (~1 req/s default).
 
-If dependencies, network, or parsing fail for a source, that source contributes **zero** rows; the script exits with status 1 when no records were collected overall.
+## Field mapping recap
 
-**Volume limit:** `max_records_per_source: 200` in manifest.
+Columns follow `web_extraction_manifest.json → output_columns` (also consistent with Practice 1):
 
-## Extracted fields
+| Logical source fragment | Columns |
+|---|---|
+| peptide sequence FASTA/`Sequence`/`sequence` | `peptide_sequence` |
+| peptide title / peptide name (`Title`, `Name`, DBAASP `name`) | `peptide_name` |
+| organism / source genus-species hint | `organism_source` |
+| segmented pathogen substring before MIC parenthesis OR DBAASP `targetSpecies.name` (+ optional ATCC split) | `pathogen_name`, `pathogen_strain` |
+| MIC numeric text + inferred unit literal | `measurement_value`, `measurement_unit` |
 
-| API / Excel field | Schema field |
-|-------------------|--------------|
-| peptideCard.sequence / Sequence | `peptide_sequence`, `peptide_length` |
-| peptideCard.name / Name | `peptide_name` |
-| peptideCard.mw | `molecular_weight_da` |
-| peptideCard.organism / Source_Organism | `organism_source` |
-| targetActivity.target / Target_Organism | `pathogen_name` |
-| targetActivity.strain | `pathogen_strain` |
-| targetActivity.value / MIC_value | `measurement_value` |
-| Unit (in API or MIC_unit col) | recorded in `notes` as `unit=...` (not a separate CSV column) |
-| Converted µg/mL | `normalized_value_ug_ml` |
-| Assay / medium / CFU / temperature | `assay_method`, `medium`, `inoculum_cfu_ml`, `temperature_c` |
+All MIC numbers remain **verbatim** (including censored inequalities such as `>200`). [`scripts/utils.py`](../scripts/utils.py) only canonicalises textual unit tokens (`ug/mL`, `uM`, `ng/mL`, …).
 
-## Extraction problems
+## Common extraction caveats
 
-- DBAASP `search` returns IDs only — full MIC data requires N+1 `peptide_card` calls; limited to 200 records per run.
-- DBAASP field names vary (`activityMeasure` vs `measurementType`); parser accepts multiple aliases.
-- DRAMP patent subset lacks assay detail — we use the **general dataset** only.
-- DRAMP µM rows without MW cannot be converted to µg/mL; `normalized_value_ug_ml` may equal raw value with `unit=uM` in notes.
-- If API or download fails, script falls back to 2 example rows per source from manifest.
+- **Throughput:** DBAASP + CAMPR sequential HTTP crawling is intentional (default `RATE_LIMIT_S` / `rate_limit_s` ≥ 1 s). Expect long wall-clock runs if `max_records` is large.
+- **DRAMP overlaps:** Rows often reproduce literature that DBAASP already hosts — merge/dedupe using `(source_id, normalized_sequence, bacterial pathogen fingerprint, verbatim MIC)` if duplicate counting matters.
+- **CAMPR incompleteness:** Many experimentally-validated peptides **lack** MIC numbers in HTML; extractor silently skips rather than hallucinating assays.
+- **Dependencies:** Requires `requests`, `pandas`, `openpyxl`. `beautifulsoup4` is **not used** inside `extract_web.py` (pure regex parsing keeps dependencies minimal).
 
-## Output files
+## Output artefacts touched by Practice 4 tooling
 
-- `data/extracted/web_extracted_records.csv` — 30 columns (schema + provenance fields)
-- `data/raw/web/dbaasp_antibacterial_search.json` — valid JSON snapshot
-- `data/raw/web/dramp_general_dataset.xlsx` — binary Excel snapshot
-- `data/extracted/extraction_log.jsonl` — method, record count, snapshot path
-
+| Path | Description |
+|---|---|
+| [`data/extracted/web_extracted_records.csv`](../data/extracted/web_extracted_records.csv) | Consolidated MIC rows appended for every enabled manifest source |
+| [`data/raw/web/dbaasp_antibacterial_search.json`](../data/raw/web/dbaasp_antibacterial_search.json) | DBAASP paginated fetch metadata snapshot |
+| [`data/raw/web/dramp_extraction_run_meta.json`](../data/raw/web/dramp_extraction_run_meta.json) | DRAMP workbook provenance snippet |
+| [`data/raw/web/campr4_harvest_snapshot.json`](../data/raw/web/campr4_harvest_snapshot.json) | CAMPR listing traversal summary |
+| [`data/extracted/extraction_log.jsonl`](../data/extracted/extraction_log.jsonl) | Structured run log appended per `{source_id, status, rows}` |

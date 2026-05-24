@@ -1,0 +1,3 @@
+record_id,source_id,pdf_id,page,aptamer_sequence,target_name,target_type,measurement_type,measurement_value,measurement_unit,assay_method,extraction_confidence,extraction_notes
+rec_green_2018_001,paper_green_2018,green_2018_thrombin_aptamer,4,GGTTGGTGTGGTTGG,Thrombin,serine protease,Kd,0.5,nM,SPR,high,Table 2 row 1
+rec_kim_2015_001,paper_kim_2015,kim_2015_lysozyme_aptamer,7,ACCTGGNNNNATGGGT,Lysozyme,enzyme,Kd,12,nM,fluorescence anisotropy,medium,Table 1; sequence from supplementary

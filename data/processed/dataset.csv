@@ -1,0 +1,5 @@
+record_id,aptamer_sequence,target_name,target_type,measurement_type,measurement_value,measurement_unit,normalized_value_nm,assay_method,buffer,temperature_c,source_id,source_type,source_url,doi,extraction_method,extraction_confidence,notes
+rec_green_2018_001,GGTTGGTGTGGTTGG,Thrombin,serine protease,Kd,0.5,nM,0.5,SPR,,,paper_green_2018,scientific_paper,,,pdf_table,high,Table 2 row 1
+rec_kim_2015_001,ACCTGGATGGGT,Lysozyme,enzyme,Kd,12.0,nM,12.0,fluorescence anisotropy,,,paper_kim_2015,scientific_paper,,,pdf_table,medium,Table 1; sequence from supplementary
+rec_aptagen_web_001,GGTTGGTGTGGTTGG,Thrombin,serine protease,Kd,0.5,nM,0.5,,,,db_aptagen,database,https://example.org/aptamer-db/target/thrombin,,web_scrape,high,Matches Green 2018; curated entry
+rec_aptagen_web_002,ACCTGGATGGGT,Lysozyme,enzyme,Kd,15.0,nM,15.0,,,,db_aptagen,database,https://example.org/aptamer-db/target/lysozyme,,web_scrape,low,Unit assumed nM; differs from Kim 2015

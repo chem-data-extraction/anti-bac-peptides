@@ -1,0 +1,42 @@
+{
+  "pdf_extraction_process": "Extract aptamer–protein binding records from selected PDF sources listed below.",
+  "output_records_file": "data/extracted/pdf_extracted_records.csv",
+  "input_sources": [
+    {
+      "source_id": "paper_green_2018",
+      "pdf_id": "green_2018_thrombin_aptamer",
+      "pdf_path": "data/raw/pdf/green_2018_thrombin_aptamer.pdf",
+      "source_url": "https://doi.org/10.1021/example.2018",
+      "doi": "10.1021/example.2018",
+      "selection_reason": "Foundational open-access paper with tabulated Kd values for thrombin-binding aptamers.",
+      "pages_used": [3, 4, 5],
+      "expected_content": "Table 2 with aptamer sequences and SPR Kd values",
+      "extraction_methods": ["pdfplumber_table", "manual_verification"],
+      "extraction_status": "template_pending"
+    },
+    {
+      "source_id": "paper_lee_2020",
+      "pdf_id": "lee_2020_multiplex_panel",
+      "pdf_path": "data/raw/pdf/lee_2020_multiplex_panel.pdf",
+      "source_url": "https://doi.org/10.1038/example.2020",
+      "doi": "10.1038/example.2020",
+      "selection_reason": "Recent multiplex study with supplementary binding table.",
+      "pages_used": [12, 13],
+      "expected_content": "Main-text summary table and reference to Supplementary Table S3",
+      "extraction_methods": ["camelot_lattice", "manual_verification"],
+      "extraction_status": "template_pending"
+    },
+    {
+      "source_id": "paper_kim_2015",
+      "pdf_id": "kim_2015_lysozyme_aptamer",
+      "pdf_path": "data/raw/pdf/kim_2015_lysozyme_aptamer.pdf",
+      "source_url": "https://doi.org/10.1016/example.2015",
+      "doi": "10.1016/example.2015",
+      "selection_reason": "Older benchmark for lysozyme aptamer with clear assay description.",
+      "pages_used": [6, 7],
+      "expected_content": "Figure caption and Table 1 with Kd in nM",
+      "extraction_methods": ["pymupdf_text", "manual_verification"],
+      "extraction_status": "template_pending"
+    }
+  ]
+}

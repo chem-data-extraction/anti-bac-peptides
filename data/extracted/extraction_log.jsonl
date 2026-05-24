@@ -1,0 +1,3 @@
+{"timestamp": "2026-02-01T10:15:00Z", "step": "pdf_extraction", "source_id": "paper_green_2018", "status": "template", "tool": "extract_pdf.py", "output": "data/extracted/pdf_extracted_records.csv", "issue": "Placeholder run; add PyMuPDF/pdfplumber for real tables"}
+{"timestamp": "2026-02-01T11:30:00Z", "step": "web_extraction", "source_id": "db_aptagen", "status": "template", "tool": "extract_web.py", "output": "data/extracted/web_extracted_records.csv", "issue": "Placeholder snapshot only; implement BeautifulSoup parser"}
+{"timestamp": "2026-02-05T09:00:00Z", "step": "build_dataset", "source_id": "", "status": "ok", "tool": "build_dataset.py", "output": "data/processed/dataset.csv", "issue": ""}

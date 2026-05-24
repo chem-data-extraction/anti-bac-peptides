@@ -1,0 +1,55 @@
+{
+  "web_extraction_version": "0.1.0",
+  "output_records_file": "data/extracted/web_extracted_records.csv",
+  "script": "scripts/extract_web.py",
+  "input_pages": [
+    {
+      "source_id": "db_aptagen",
+      "page_id": "aptagen_thrombin_entries",
+      "url": "https://example.org/aptamer-db/target/thrombin",
+      "access_date": "2026-02-01",
+      "access_status": "open_access",
+      "robots_notes": "robots.txt allows crawling of /aptamer-db/ with 1 req/s; respect terms of use.",
+      "selection_reason": "Structured HTML tables listing curated thrombin aptamer Kd values.",
+      "page_type": "database_browse_page",
+      "expected_content": "HTML table with columns: sequence, target, Kd, method",
+      "parser_plan": {
+        "tool": "requests + BeautifulSoup",
+        "selectors": {
+          "table": "table.binding-records",
+          "row": "tbody tr",
+          "sequence": "td.seq",
+          "target": "td.target",
+          "value": "td.kd",
+          "unit": "td.unit"
+        }
+      },
+      "raw_snapshot_path": "data/raw/web/aptagen_thrombin_entries.html",
+      "extraction_status": "template_pending"
+    },
+    {
+      "source_id": "db_aptagen",
+      "page_id": "aptagen_lysozyme_entries",
+      "url": "https://example.org/aptamer-db/target/lysozyme",
+      "access_date": "2026-02-02",
+      "access_status": "open_access",
+      "robots_notes": "Same policy as thrombin browse page.",
+      "selection_reason": "Complements PDF sources for lysozyme aptamer records.",
+      "page_type": "database_browse_page",
+      "expected_content": "Paginated result list with affinity fields",
+      "parser_plan": {
+        "tool": "requests + BeautifulSoup",
+        "selectors": {
+          "table": "table.binding-records",
+          "row": "tbody tr",
+          "sequence": "td.seq",
+          "target": "td.target",
+          "value": "td.kd",
+          "unit": "td.unit"
+        }
+      },
+      "raw_snapshot_path": "data/raw/web/aptagen_lysozyme_entries.html",
+      "extraction_status": "template_pending"
+    }
+  ]
+}

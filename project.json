@@ -1,0 +1,21 @@
+{
+  "project_id": "aptamer_protein_binding",
+  "project_title": "Aptamer–protein binding dataset",
+  "project_status": "template",
+  "scientific_task": "Collect experimentally reported aptamer–protein binding measurements for downstream comparison of binding affinity values and assay conditions.",
+  "record_definition": {
+    "one_record": "One experimentally reported aptamer–protein binding measurement from a specific source."
+  },
+  "main_entities": [
+    "aptamer",
+    "protein_target",
+    "binding_measurement",
+    "source"
+  ],
+  "final_dataset_path": "data/processed/dataset.csv",
+  "schema_path": "specs/dataset_schema.json",
+  "source_map_path": "specs/source_map.json",
+  "created_by": "",
+  "created_date": "",
+  "version": "0.1.0"
+}

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "Aptamer–protein binding dataset"
+message: "If you use this dataset, please cite it as below."
+type: dataset
+authors:
+  - family-names: "Student"
+    given-names: "Name"
+    affiliation: "University / Course"
+repository-code: "https://github.com/example/aptamer-protein-binding-dataset"
+url: "https://github.com/example/aptamer-protein-binding-dataset"
+version: 0.1.0
+date-released: 2026-05-22
+keywords:
+  - aptamer
+  - protein binding
+  - affinity
+  - scientific data extraction
+license: CC-BY-4.0

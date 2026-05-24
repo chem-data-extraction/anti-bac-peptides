@@ -1,0 +1,3 @@
+record_id,source_id,page_id,aptamer_sequence,target_name,target_type,measurement_type,measurement_value,measurement_unit,source_url,extraction_confidence,extraction_notes
+rec_aptagen_web_001,db_aptagen,aptagen_thrombin_entries,GGTTGGTGTGGTTGG,Thrombin,serine protease,Kd,0.5,nM,https://example.org/aptamer-db/target/thrombin,high,Matches Green 2018; curated entry
+rec_aptagen_web_002,db_aptagen,aptagen_lysozyme_entries,ACCTGGATGGGT,Lysozyme,enzyme,Kd,15,nM,https://example.org/aptamer-db/target/lysozyme,low,Unit assumed nM; differs from Kim 2015

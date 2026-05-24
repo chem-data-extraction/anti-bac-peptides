@@ -1,0 +1,62 @@
+{
+  "pipeline_version": "0.1.0",
+  "inputs": [
+    "data/extracted/pdf_extracted_records.csv",
+    "data/extracted/web_extracted_records.csv"
+  ],
+  "output": "data/processed/dataset.csv",
+  "steps": [
+    {
+      "step_id": "merge_sources",
+      "operation": "concatenate",
+      "description": "Combine PDF- and web-extracted CSV files into a single interim table.",
+      "input_files": [
+        "data/extracted/pdf_extracted_records.csv",
+        "data/extracted/web_extracted_records.csv"
+      ],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "normalize_units",
+      "operation": "unit_conversion",
+      "description": "Convert measurement_value to nanomolar (normalized_value_nm) using measurement_unit.",
+      "fields": ["measurement_value", "measurement_unit"],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "standardize_sequences",
+      "operation": "sequence_cleanup",
+      "description": "Uppercase aptamer sequences and remove whitespace or invalid characters.",
+      "fields": ["aptamer_sequence"],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "standardize_missing_values",
+      "operation": "missing_value_cleanup",
+      "description": "Map NA, N/A, -, empty strings to null-like values for pandas export.",
+      "fields": ["measurement_value", "buffer", "notes"],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "deduplicate_records",
+      "operation": "deduplicate",
+      "description": "Remove duplicate rows sharing record_id or identical sequence+target+value+source.",
+      "fields": ["record_id", "aptamer_sequence", "target_name", "measurement_value", "source_id"],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "validate_schema",
+      "operation": "validation",
+      "description": "Run rules in specs/validation_rules.json via scripts/validate_project.py.",
+      "input_files": ["data/processed/dataset.csv"],
+      "output_file": "reports/practice_05_cleaning_publication.md"
+    },
+    {
+      "step_id": "export_final_dataset",
+      "operation": "export",
+      "description": "Write schema-aligned columns to the publication dataset CSV.",
+      "input_files": ["data/interim/merged_records.csv"],
+      "output_file": "data/processed/dataset.csv"
+    }
+  ]
+}

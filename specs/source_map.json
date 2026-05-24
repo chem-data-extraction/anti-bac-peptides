@@ -1,0 +1,171 @@
+{
+  "topic": "Aptamer–protein binding measurements",
+  "root_query": "aptamer protein binding Kd SPR SELEX experimental affinity",
+  "source_map_version": "0.1.0",
+  "source_groups": {
+    "scientific_papers": [
+      {
+        "source_id": "paper_green_2018",
+        "name": "Green et al. 2018 – thrombin-binding DNA aptamer",
+        "source_type": "journal_article",
+        "url": "https://doi.org/10.1021/example.2018",
+        "doi": "10.1021/example.2018",
+        "access_status": "open_access",
+        "access_method": "publisher PDF download",
+        "access_date": "2026-01-15",
+        "license": "CC-BY-4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 8,
+        "available_data_types": ["tables", "text", "figures"],
+        "expected_fields": ["aptamer_sequence", "target_name", "Kd", "assay_method"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction plus manual verification"
+        },
+        "notes": "Primary paper for thrombin aptamer benchmark measurements."
+      },
+      {
+        "source_id": "paper_lee_2020",
+        "name": "Lee et al. 2020 – multiplex aptamer panel",
+        "source_type": "journal_article",
+        "url": "https://doi.org/10.1038/example.2020",
+        "doi": "10.1038/example.2020",
+        "access_status": "subscription",
+        "access_method": "institutional library PDF",
+        "access_date": "2026-01-20",
+        "license": "publisher terms",
+        "expected_data_volume": "medium",
+        "estimated_records": 25,
+        "available_data_types": ["supplementary_tables"],
+        "expected_fields": ["aptamer_sequence", "target_name", "IC50", "buffer"],
+        "extraction_strategy": {
+          "recommended_method": "supplementary PDF table parsing"
+        },
+        "notes": "Use supplementary Table S3 for binding constants."
+      },
+      {
+        "source_id": "paper_kim_2015",
+        "name": "Kim et al. 2015 – lysozyme-binding aptamer",
+        "source_type": "journal_article",
+        "url": "https://doi.org/10.1016/example.2015",
+        "doi": "10.1016/example.2015",
+        "access_status": "open_access",
+        "access_method": "publisher PDF download",
+        "access_date": "2026-01-18",
+        "license": "CC-BY-NC-ND",
+        "expected_data_volume": "low",
+        "estimated_records": 6,
+        "available_data_types": ["tables", "text"],
+        "expected_fields": ["aptamer_sequence", "target_name", "Kd", "assay_method"],
+        "extraction_strategy": {
+          "recommended_method": "pdfplumber table extraction"
+        },
+        "notes": "Benchmark lysozyme aptamer measurements."
+      }
+    ],
+    "supplementary_materials": [
+      {
+        "source_id": "supp_lee_2020_s3",
+        "name": "Lee 2020 Supplementary Table S3",
+        "source_type": "supplementary_data",
+        "url": "https://doi.org/10.1038/example.2020#supplementary",
+        "doi": "10.1038/example.2020",
+        "access_status": "open_access",
+        "access_method": "supplementary PDF",
+        "access_date": "2026-01-21",
+        "license": "CC-BY-4.0",
+        "expected_data_volume": "medium",
+        "estimated_records": 20,
+        "available_data_types": ["tables"],
+        "expected_fields": ["aptamer_sequence", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "Camelot or tabula on supplementary PDF"
+        },
+        "notes": "Machine-readable tables; preferred over main-text figure values."
+      }
+    ],
+    "databases": [
+      {
+        "source_id": "db_aptagen",
+        "name": "AptaIndex / literature-curated aptamer entries",
+        "source_type": "database",
+        "url": "https://example.org/aptamer-db",
+        "doi": "",
+        "access_status": "open_access",
+        "access_method": "web export and API (if available)",
+        "access_date": "2026-02-01",
+        "license": "CC-BY-4.0",
+        "expected_data_volume": "high",
+        "estimated_records": 200,
+        "available_data_types": ["structured_records", "sequences"],
+        "expected_fields": ["aptamer_sequence", "target_name", "Kd"],
+        "extraction_strategy": {
+          "recommended_method": "web_scrape or bulk CSV download"
+        },
+        "notes": "Cross-check sequences against primary papers when possible."
+      }
+    ],
+    "aggregators": [
+      {
+        "source_id": "agg_uniprot_crossref",
+        "name": "UniProt + Crossref metadata for target proteins",
+        "source_type": "aggregator",
+        "url": "https://www.uniprot.org/",
+        "doi": "",
+        "access_status": "open_access",
+        "access_method": "REST API",
+        "access_date": "2026-02-05",
+        "license": "CC-BY-4.0",
+        "expected_data_volume": "metadata_only",
+        "estimated_records": 0,
+        "available_data_types": ["protein_names", "identifiers"],
+        "expected_fields": ["target_name", "target_type"],
+        "extraction_strategy": {
+          "recommended_method": "API lookup to standardize target names"
+        },
+        "notes": "Does not provide binding values; enriches target metadata only."
+      }
+    ],
+    "github_repositories": [
+      {
+        "source_id": "gh_aptamer_benchmark",
+        "name": "community/aptamer-binding-benchmark",
+        "source_type": "github_repository",
+        "url": "https://github.com/example/aptamer-binding-benchmark",
+        "doi": "",
+        "access_status": "open_access",
+        "access_method": "git clone",
+        "access_date": "2026-02-10",
+        "license": "MIT",
+        "expected_data_volume": "medium",
+        "estimated_records": 50,
+        "available_data_types": ["csv", "json"],
+        "expected_fields": ["aptamer_sequence", "target_name", "measurement_value"],
+        "extraction_strategy": {
+          "recommended_method": "import released CSV with license check"
+        },
+        "notes": "Verify commit hash and release tag for reproducibility."
+      }
+    ],
+    "ml_datasets": [
+      {
+        "source_id": "ml_aptamer_kaggle",
+        "name": "Kaggle – Aptamer affinity prediction subset",
+        "source_type": "ml_dataset",
+        "url": "https://www.kaggle.com/datasets/example/aptamer-affinity",
+        "doi": "",
+        "access_status": "registration_required",
+        "access_method": "Kaggle API download",
+        "access_date": "2026-02-12",
+        "license": "unknown",
+        "expected_data_volume": "high",
+        "estimated_records": 500,
+        "available_data_types": ["csv"],
+        "expected_fields": ["aptamer_sequence", "target_name", "label"],
+        "extraction_strategy": {
+          "recommended_method": "document provenance; use only if license permits redistribution"
+        },
+        "notes": "May mix predicted and experimental values—filter by source column."
+      }
+    ]
+  }
+}

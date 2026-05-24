@@ -14,7 +14,7 @@
     "source_id", "source_type", "publication_year", "source_url", "doi",
     "extraction_method", "extraction_confidence", "notes"
   ],
-  "extraction_note": "Three ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP general_amps workbook from data/raw/web (Target_Organism `(MIC …)` parsing); (3) CAMPR4/CAMP HTML list + seqDisp detail pages for entries whose Target field contains `(MIC …)`. Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below.",
+  "extraction_note": "Two ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP general_amps workbook from data/raw/web (Target_Organism `(MIC …)` parsing). Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below.",
   "input_pages": [
     {
       "source_id": "db_dbaasp",
@@ -40,7 +40,7 @@
         "notes": "verbatim MIC text; canonical units via scripts/utils.py only."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
-      "extraction_status": "pending"
+      "extraction_status": "completed"
     },
     {
       "source_id": "db_dramp",
@@ -59,28 +59,7 @@
         "filter": "Activity contains Antibacterial; Target_Organism must contain `(MIC …)` clauses parseable by shared regex helpers.",
         "extraction_confidence_default": "medium"
       },
-      "extraction_status": "pending"
-    },
-    {
-      "source_id": "db_campr4",
-      "page_id": "campr4_sequence_browser",
-      "url": "https://camp.bicnirrh.res.in",
-      "doi": "10.1093/nar/gkac1012",
-      "license": "see CAMPR/R site terms — academic use typical",
-      "max_records": 1000,
-      "camp_site_origin": "https://camp.bicnirrh.res.in",
-      "list_url_pattern": "{orig}/seqDb.php?page={page}&natural=natural",
-      "campr_list_page_first": 0,
-      "campr_max_list_pages": 8,
-      "rate_limit_s": 1.0,
-      "access_method": "HTML: harvest seqDisp.php?id=CAMPSQ… IDs from seqDb listings, GET detail pages, parse Activity/Title/Source/Target/FASTA.",
-      "parser_plan": {
-        "tool": "requests + regex (no BeautifulSoup dependency)",
-        "filter": "Activity contains Antibacterial; Target column must yield ≥1 `(MIC …)` segment; peptide sequence from .fasta table cell.",
-        "notes": "Many CAMPR entries omit numeric MIC on the HTML card — those are skipped automatically."
-      },
-      "raw_snapshot_path": "data/raw/web/campr4_harvest_snapshot.json",
-      "extraction_status": "pending"
+      "extraction_status": "completed"
     }
   ]
 }

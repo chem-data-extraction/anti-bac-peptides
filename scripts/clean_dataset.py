@@ -114,6 +114,15 @@ def normalize_float(value: object) -> float | None:
     return parse_numeric_measurement(value)
 
 
+def normalize_inoculum_cfu_ml(value: object) -> str | None:
+    if pd.isna(value) or value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in MISSING_TOKENS:
+        return None
+    return text
+
+
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
@@ -149,12 +158,16 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "measurement_unit" in out.columns:
         out["measurement_unit"] = out["measurement_unit"].map(normalize_measurement_unit)
 
+    if "inoculum_cfu_ml" in out.columns:
+        out["inoculum_cfu_ml"] = out["inoculum_cfu_ml"].map(normalize_inoculum_cfu_ml)
+
     for col in out.columns:
         if col in (
             "record_id",
             "peptide_sequence",
             "measurement_value",
             "measurement_unit",
+            "inoculum_cfu_ml",
             "temperature_c",
             "incubation_time_h",
             "publication_year",
@@ -189,7 +202,7 @@ def load_schema_columns() -> list[str]:
 
 def load_input_frame() -> pd.DataFrame:
     if MERGED_PATH.is_file():
-        return pd.read_csv(MERGED_PATH)
+        return pd.read_csv(MERGED_PATH, dtype={"inoculum_cfu_ml": "string"})
     build_path = ROOT / "scripts" / "build_dataset.py"
     spec = importlib.util.spec_from_file_location("build_dataset", build_path)
     if spec is None or spec.loader is None:

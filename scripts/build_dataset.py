@@ -23,7 +23,7 @@ def load_schema_columns() -> list[str]:
 def load_extract_csv(path: Path, columns: list[str]) -> pd.DataFrame:
     if not path.is_file():
         raise FileNotFoundError(f"Missing extraction file: {path.relative_to(ROOT)}")
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, dtype={"inoculum_cfu_ml": "string"})
     for col in columns:
         if col not in df.columns:
             df[col] = None

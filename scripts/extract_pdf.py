@@ -99,11 +99,7 @@ MANIFEST = ROOT / "specs/pdf_extraction_manifest.json"
 OUTPUT_CSV = ROOT / "data/extracted/pdf_extracted_records.csv"
 LOG_PATH = ROOT / "data/extracted/extraction_log.jsonl"
 
-LUO_PEPTIDES = (
-    "RP556", "LZ1", "AA139", "PA13", "Oligo10",
-    "R1", "R10", "R11", "R12", "R13", "R14",
-)
-LUO_PATHOGENS = [
+RAMATA_STUNDA_PATHOGENS = [
     ("Escherichia coli", "ATCC 25922", "Gram-negative"),
     ("Pseudomonas aeruginosa", "ATCC 27853", "Gram-negative"),
     ("Klebsiella pneumoniae", "ATCC 700603", "Gram-negative"),
@@ -112,7 +108,7 @@ LUO_PATHOGENS = [
     ("Cutibacterium acnes", "ATCC 6919", "Gram-positive"),
 ]
 
-KIM_PEPTIDES = [
+LEE_PEPTIDES = [
     {
         "col_index": 0,
         "peptide_name": "H. cecropia cecropin A",
@@ -127,7 +123,7 @@ KIM_PEPTIDES = [
     },
 ]
 
-KIM_STRAIN_MAP = {
+LEE_STRAIN_MAP = {
     "e. coli": ("Escherichia coli", "ATCC 25922", "Gram-negative"),
     "a. baumannii": ("Acinetobacter baumannii", "ATCC 19606", "Gram-negative"),
     "p. aeruginosa": ("Pseudomonas aeruginosa", "ATCC 27853", "Gram-negative"),
@@ -290,6 +286,9 @@ def parse_melittin_processes_text(page_texts: dict[int, str], source: dict) -> l
             ),
             "peptide_name": peptide,
             "peptide_sequence": seq,
+            "organism_source": (
+                "Apis mellifera" if peptide == "Melittin" else "synthetic"
+            ),
             "pathogen_name": pname,
             "pathogen_strain": strain,
             "gram_stain": gram,
@@ -418,12 +417,12 @@ def _base_row(source: dict, source_id: str) -> dict[str, Any]:
         "incubation_time_h": assay.get("incubation_time_h", ""),
         "extraction_method": "pdf_text",
         "extraction_confidence": "high",
-        "organism_source": "synthetic",
+        "organism_source": source.get("default_organism_source", ""),
         "synthesis_type": "synthetic",
     }
 
 
-def parse_luo_text(text: str, source: dict) -> list[dict]:
+def parse_ramata_stunda_text(text: str, source: dict) -> list[dict]:
     """Parse Ramata-Stunda et al. 2023 (Antibiotics) MIC table; source_id `paper_ramata_stunda_2023`."""
     source_id = source["source_id"]
     block = text
@@ -454,7 +453,7 @@ def parse_luo_text(text: str, source: dict) -> list[dict]:
         peptide_name = m.group(1)
         values = [m.group(i) for i in range(2, 8)]
         seq = sequences.get(peptide_name, "")
-        for (pname, strain, gram), raw_mic in zip(LUO_PATHOGENS, values):
+        for (pname, strain, gram), raw_mic in zip(RAMATA_STUNDA_PATHOGENS, values):
             mv = verbatim_measurement_value(raw_mic)
             rows.append({
                 **_base_row(source, source_id),
@@ -464,6 +463,7 @@ def parse_luo_text(text: str, source: dict) -> list[dict]:
                 ),
                 "peptide_name": peptide_name,
                 "peptide_sequence": seq,
+                "organism_source": "synthetic",
                 "pathogen_name": pname,
                 "pathogen_strain": strain,
                 "gram_stain": gram,
@@ -491,7 +491,7 @@ def _parse_mic_tokens(line: str) -> list[str]:
     return tokens
 
 
-def parse_wang_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+def parse_zhang_text(page_texts: dict[int, str], source: dict) -> list[dict]:
     """Zhang et al. 2024 Spectrum — Table 1 peptide/MW; Table 2 MIC (µM) vs MRSA strains."""
     source_id = source["source_id"]
     text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
@@ -535,6 +535,7 @@ def parse_wang_text(page_texts: dict[int, str], source: dict) -> list[dict]:
                 ),
                 "peptide_name": pep_name,
                 "peptide_sequence": seq,
+                "organism_source": "synthetic",
                 "pathogen_name": "Staphylococcus aureus",
                 "pathogen_strain": strain_label,
                 "gram_stain": "Gram-positive",
@@ -545,7 +546,7 @@ def parse_wang_text(page_texts: dict[int, str], source: dict) -> list[dict]:
     return rows
 
 
-def parse_kim_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+def parse_lee_text(page_texts: dict[int, str], source: dict) -> list[dict]:
     """Parse Lee et al. 2023 (Pharmaceutics) MIC table for cecropin peptides; source_id `paper_lee_2023`."""
     source_id = source["source_id"]
     text_all = "\n".join(page_texts.values())
@@ -565,10 +566,10 @@ def parse_kim_text(page_texts: dict[int, str], source: dict) -> list[dict]:
             continue
         org_key = m.group(1).lower()
         vals = m.group(2).split()
-        if org_key not in KIM_STRAIN_MAP or len(vals) < 2:
+        if org_key not in LEE_STRAIN_MAP or len(vals) < 2:
             continue
-        pname, strain, gram = KIM_STRAIN_MAP[org_key]
-        for pep_info, raw_mic in zip(KIM_PEPTIDES, vals[:2]):
+        pname, strain, gram = LEE_STRAIN_MAP[org_key]
+        for pep_info, raw_mic in zip(LEE_PEPTIDES, vals[:2]):
             mv = verbatim_measurement_value(raw_mic)
             rows.append({
                 **_base_row(source, source_id),
@@ -593,9 +594,9 @@ def parse_kim_text(page_texts: dict[int, str], source: dict) -> list[dict]:
 
 
 TEXT_PARSERS: dict[str, Callable[[dict[int, str], dict], list[dict]]] = {
-    "paper_ramata_stunda_2023": lambda texts, src: parse_luo_text("\n".join(texts.values()), src),
-    "paper_zhang_2024": parse_wang_text,
-    "paper_lee_2023": parse_kim_text,
+    "paper_ramata_stunda_2023": lambda texts, src: parse_ramata_stunda_text("\n".join(texts.values()), src),
+    "paper_zhang_2024": parse_zhang_text,
+    "paper_lee_2023": parse_lee_text,
     "paper_hu_fmicb_2022_alpha_helix": parse_hu_fmicb_text,
     "paper_melittin_processes_mdpi": parse_melittin_processes_text,
 }

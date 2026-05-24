@@ -21,8 +21,6 @@ The databases were identified from the following sources:
 - DRAMP 4.0: Ma et al. 2025, *Nucleic Acids Research* (doi: 10.1093/nar/gkae1008)
 - CAMPR4: Waghu et al. 2023, *Nucleic Acids Research* (doi: 10.1093/nar/gkac1012)
 
-APD6 (Antimicrobial Peptide Database, version 6; 6,309 entries) was also surveyed but excluded as a primary MIC source because the APD development team confirmed (FAQ, January 2026) that the bulk MIC export is being unified and is not yet available. APD6 will be used only for sequence cross-validation.
-
 ### Axis 2 — Primary literature (PubMed / Google Scholar)
 
 **Search queries:**
@@ -37,16 +35,11 @@ APD6 (Antimicrobial Peptide Database, version 6; 6,309 entries) was also surveye
 4. Published open access under a license permitting data reuse (CC BY 4.0 preferred)
 5. Tests clinically relevant pathogens (ESKAPE panel or documented drug-resistant strains)
 
-Three papers were selected that collectively cover a broad pathogen panel (8 species + colistin-resistant clinical isolates) and diverse peptide origins (rationally designed synthetic, insect natural, modified natural).
+Five open-access papers with explicit peptide MIC tables/PDF parsers were pinned in `specs/pdf_extraction_manifest.json` (`data/raw/pdf/*.pdf`): they widen pathogen/peptide-design coverage relative to databases alone — from ESKAPE + *C. acnes* grids (Ramata‑Stunda) and insect cecropins (Lee), through symmetrical W‑peptide MRSA studies (Zhang), a large α‑helical screening matrix (Hu *Frontiers* 2022), to melittin‑derived analogue panels (*Processes*, 2026).
 
-### Axis 3 — Snowballing and ML datasets
+### Axis 3 — Literature snowballing (non-ingested context)
 
-Citations in the DBAASP and DRAMP reference papers were scanned for review articles containing large MIC tables. Additionally, ML-oriented AMP benchmark datasets were surveyed because they often provide pre-processed versions of database MIC data with provenance links:
-
-- QMAP Benchmark (2026, biorXiv doi: 10.64898/2026.02.03.703041): DBAASP-derived MIC regression dataset for E. coli and S. aureus, available on Hugging Face.
-- ESCAPE dataset (Harvard Dataverse): large aggregated AMP classification dataset from 27 databases — excluded because it lacks per-record MIC values (classification only, not regression).
-
-DRAMP 3.0 GitHub repository (CPU-DRAMP/DRAMP-3.0) was identified as an alternative access path to DRAMP data when the main download page is slow or unavailable.
+Citation graphs around the DBAASP / CAMPR database papers surfaced additional review articles featuring MIC tables **outside** our automated ingestion scope — they informed paper selection criteria but **are not scripted into `extract_web.py`**. Auxiliary ML-oriented mirrors (benchmark packs on hubs like Hugging Face) were consciously excluded unless they expose independent experimental provenance, because duplicates would simply restate curated DBAASP rows.
 
 ---
 
@@ -62,51 +55,29 @@ Three databases provide the bulk of structured, experimentally validated MIC rec
 The primary database source. DBAASP is the only major AMP database that stores MIC at the resolution of a single peptide–pathogen–assay triple (matching our one-record definition exactly). Each entry in its `TargetActivity` list maps to one row in our dataset. The REST API supports filtered queries by target group (bacteria), target species, and activity measure (MIC). Output formats: JSON, FASTA, CSV. Expected yield: ~2,000 records after filtering to bacteria and records with a numeric MIC value. Manually curated with PubMed back-links.
 
 **`db_dramp`** — DRAMP 4.0 (http://dramp.cpu-bioinfor.org).
-The secondary database source. DRAMP's general dataset (~11,612 entries) provides experimentally validated AMPs with MIC annotations. Its bulk download (CC BY 4.0) is categorised by activity type — the antibacterial subset is downloaded directly. DRAMP 4.0 uniquely adds serum and protease stability annotations. Expected yield: ~3,000 records from the antibacterial subset after filtering to entries with numeric MIC values. Significant non-overlap with DBAASP (DRAMP reported ~70% non-overlapping sequences vs APD+CAMP in v2; overlap with DBAASP is smaller but non-negligible — see overlaps section).
+Secondary database source mirrored through the reproducible workbook at `data/raw/web/dramp_general_dataset.xlsx` (see Practice 4 manifest + `FETCHERS["db_dramp"]`). `fetch_dramp()` filters antibacterial rows and mines `(MIC …)` clauses encoded inside **`Target_Organism`**. DRAMP overlaps heavily with DBAASP and primary citations; treat supplementation/dedupe as a downstream Practice 5 decision rather than rejecting rows at ingest.
 
-**`db_campr4`** — CAMPR4 (https://camp.bicnirrh.res.in).
-Tertiary database source. CAMPR4 has a separate curation pipeline and captures records from older literature that the other two databases may have missed. No bulk API, so records are retrieved by querying by target organism through the web interface and exporting results. Lower automation level than DBAASP/DRAMP. Expected yield: ~500 additional records not already covered by the other two databases.
+**`db_campr4`** — CAMPR4 portal (https://camp.bicnirrh.res.in).
+Tertiary database source backed by ICMR CAMPR sequencing browser. Automated extraction (`scripts/extract_web.py`) traverses curated `seqDb.php` pagination, opens each CAMPSQ detail tab, reads `FASTA`/Activity/Target fields and only persists antibacterial rows containing explicit `(MIC …)` clauses in Target text. Yield is capped by modest `campr_max_list_pages`/`max_records` defaults because many peptides lack MIC values on-screen (entries without MIC are intentionally skipped).
 
 ### Scientific papers (`source_id` prefix: `paper_`)
 
-Three open-access papers with explicit MIC tables were selected for PDF extraction:
+Five open-access articles are wired for PDF ingestion (`scripts/extract_pdf.py` + `specs/pdf_extraction_manifest.json`); each PDF is listed under **`data/raw/pdf/`** exactly as **`pdf_path`** in the manifest.
 
 **`paper_ramata_stunda_2023`** — Ramata-Stunda et al. 2023, *Antibiotics* 12(3):551 (doi: 10.3390/antibiotics12030551); first author **Anna Ramata-Stunda**.
 Table 2 contains MIC values in µg/mL for 11 AMPs (6 de novo designed: R1, R10–R14; 5 reference: RP556, LZ1, AA139, PA13, Oligo10) against 6 pathogens (E. coli, P. aeruginosa, K. pneumoniae, E. faecium, S. aureus, C. acnes). All sequences are in Table 1. Assay: broth microdilution, MHB. Estimated 66 records.
 
 **`paper_zhang_2024`** — Zhang et al. 2024, _Microbiology Spectrum_ (doi: 10.1128/spectrum.00265-24; PMC11537005); first author surname Zhang.
-MIC table for 5 symmetrical AMPs (W1–W5) against MRSA/MSSA and other panels; values reported in **µM** — convert to µg/mL via `molecular_weight_da` in `scripts/extract_pdf.py`. (This replaces an earlier erroneous pointer to Frontiers in Microbiology and DOI `10.3389/...`; the repo PDF matches ASM Spectrum.)
+MIC table for 5 symmetrical AMPs (W1–W5) against MRSA/MSSA panels; MIC values stored as **`measurement_value`** with **`measurement_unit`** canonicalized to **`uM`** (no automatic µg/mL conversion). (This replaces an earlier erroneous pointer to Frontiers in Microbiology and DOI `10.3389/...`; the repo PDF matches ASM Spectrum.)
 
 **`paper_lee_2023`** — Lee et al. 2023, _Pharmaceutics_ 15(6):1752 (doi: 10.3390/pharmaceutics15061752); first author **Hyeju Lee**.
 Table panels report MIC versus standard and colistin-resistant pathogens; the extractor parses values as **µM** (`pages_used: [9]` in `pdf_extraction_manifest.json`). Only the **T. ni** and **H. cecropia** cecropin rows are modeled as peptide MIC records (antibiotic controls such as polymyxins are excluded despite appearing in tables).
 
-### Supplementary materials (`source_id` prefix: `supp_`)
+**`paper_hu_fmicb_2022_alpha_helix`** — Hu et al., *Frontiers in Microbiology* (doi: 10.3389/fmicb.2022.870361).
+Bench-style TABLE 1: many α-helical peptide codes (**S1–S60**) vs CMCC bacterial strain columns (**µg/mL**); `pages_used: [8]`. Intended for **bulk screening-style coverage**; expect overlap with DBAASP/DRAMP citations for catalogue peptides — keep separate `source_id` rows and optionally dedupe in cleaning.
 
-**`supp_ramata_stunda_2023_s1`** — Supplementary Table S1 from Ramata-Stunda et al. 2023.
-Contains antibiotic control MICs (not peptide records). Included in the source map for completeness and cross-checking assay validity. Not extracted into the dataset.
-
-### Aggregators (`source_id` prefix: `agg_`)
-
-Two standard bioinformatics resources are used for metadata enrichment only — they do not provide MIC values:
-
-**`agg_uniprot`** — UniProt (https://www.uniprot.org). REST API lookup for `organism_source` standardisation (canonical binomial species names).
-
-**`agg_ncbi_taxonomy`** — NCBI Taxonomy (https://www.ncbi.nlm.nih.gov/taxonomy). Biopython Entrez lookup for canonical `pathogen_name` and `gram_stain` classification from taxon lineage (Firmicutes = Gram-positive; Proteobacteria = Gram-negative).
-
-### GitHub repositories (`source_id` prefix: `gh_`)
-
-**`gh_dramp_github`** — CPU-DRAMP/DRAMP-3.0 (https://github.com/CPU-DRAMP/DRAMP-3.0).
-Excel workbook with sequences from 4 databases (DRAMP, APD, DBAASP, CAMP). Secondary access path to DRAMP data. Used if the DRAMP downloads page is unavailable; also used to record a fixed commit SHA for reproducibility. CC BY 4.0.
-
-### ML datasets (`source_id` prefix: `ml_`)
-
-**`ml_qmap`** — QMAP Benchmark (https://huggingface.co/datasets/anthol42/qmap_benchmark_2025).
-DBAASP-derived MIC regression splits for machine learning benchmarking; citation DOI prefix `10.64898/` links to Cold Spring Harbor’s bioRxiv resolver (canonical URL uses `10.64898/2026.02.03.703041`). Use only as **cross-validation** against `db_dbaasp`; not an independent MIC source because entries duplicate curated DBAASP rows.
-
-### Reference databases (`source_id` prefix: `db_apd6`)
-
-**`db_apd6`** — APD6 (https://aps.unmc.edu).
-6,309 peptides (Jan 2026). MIC bulk export pending. Used exclusively for sequence cross-validation against DBAASP/DRAMP entries via peptide name or FASTA search.
+**`paper_melittin_processes_mdpi`** — Melittin-derived analogues, *Processes* MDPI (doi: 10.3390/pr14101630; PDF `processes-14-01630.pdf`).
+MIC-oriented tables (**µg/mL**, CAMHB + assay DMSO per Methods; `pages_used: [10, 12, 13]`) for melittin, TT-1, FKW, WKW versus Gram-positive/Gram-negative panels documented in `pdf_extraction_manifest.json`. Bridges natural-toxin scaffold design with antibacterial MIC reporting.
 
 ---
 
@@ -116,19 +87,16 @@ Sources are ranked by reliability, expected yield, MIC completeness, and extract
 
 | Priority | source_id | Rationale |
 |----------|-----------|-----------|
-| 1 | `db_dbaasp` | Highest structural fit to schema; MIC per peptide–pathogen–assay triple; REST API; manually curated; >15k entries |
-| 2 | `db_dramp` | Bulk CC BY 4.0 download; large general dataset; complements DBAASP with non-overlapping records; DRAMP 4.0 is the most current version |
-| 3 | `paper_ramata_stunda_2023` | Best-structured table; all required fields in same paper; broth microdilution; 6 pathogens; CC BY 4.0 |
-| 4 | `paper_zhang_2024` | MRSA clinical isolate coverage; structured table; unit conversion needed (µM) |
-| 5 | `paper_lee_2023` | Insect AMP natural origin; colistin-resistant isolates; clean table; smaller yield |
-| 6 | `db_campr4` | Supplementary cross-check; no bulk API; overlaps expected with DBAASP/DRAMP |
-| 7 | `gh_dramp_github` | Alternate DRAMP snapshot on GitHub; provenance cross-check |
-| 8 | `ml_qmap` | Cross-validation against db_dbaasp only; not primary |
-| — | `agg_uniprot`, `agg_ncbi_taxonomy` | Metadata enrichment; no MIC data |
-| — | `db_apd6` | Sequence cross-validation only |
-| — | `supp_ramata_stunda_2023_s1` | Antibiotic controls; not extracted |
+| 1 | `db_dbaasp` | Highest structural fit to schema; MIC per peptide–pathogen–assay triple; REST-ish JSON crawler; continuously curated backbone |
+| 2 | `db_dramp` | Local Excel bundle + `(MIC …)` mining; complements coverage but overlaps DBAASP/literature |
+| 3 | `paper_ramata_stunda_2023` | Best-structured table; all required fields in same paper; broth microdilution; CC BY 4.0 |
+| 4 | `paper_zhang_2024` | MRSA clinical isolate coverage; structured MIC table in µM (`measurement_unit` = `uM`) |
+| 5 | `paper_lee_2023` | Insect AMP natural origin; colistin-resistant isolates |
+| 6 | `paper_hu_fmicb_2022_alpha_helix` | High-density peptide × strain MIC grid (µg/mL); overlaps curated DB literature |
+| 7 | `paper_melittin_processes_mdpi` | Melittin-scaffold analogues + CAMHB MIC tables documented in manifest |
+| 8 | `db_campr4` | HTML-only CAMPR portal enrichment; skips entries without MIC text |
 
-Extraction will proceed in priority order: databases first (highest yield with lowest manual effort), then papers.
+Extraction proceeds **first** along the programmatic database axis (`db_*` ingest), **then** the PDF manifests in roughly this priority tier (dense curated tables → specialist screens/extra PDFs → HTML CAMPR as a tertiary scrape).
 
 ---
 
@@ -138,15 +106,12 @@ Extraction will proceed in priority order: databases first (highest yield with l
 |-----------|--------------|--------------|---------|----------------------|-------|
 | `db_dbaasp` | Open | No | No | No | REST API, no auth; web export also available |
 | `db_dramp` | Open | No | No | No | Direct download from dramp.cpu-bioinfor.org/downloads/ |
-| `db_campr4` | Open | No | No | No | Web interface only; no bulk API |
+| `db_campr4` | Open | No | No | No | ICMR-hosted HTML UI; scripted polite crawl (~1 s delay) |
 | `paper_ramata_stunda_2023` | Open (CC BY 4.0) | No | No | No | MDPI; direct PDF and HTML access |
 | `paper_zhang_2024` | Open-access | No | No | No | ASM Spectrum / PMC canonical PDF (`spectrum.00265-24`) |
 | `paper_lee_2023` | Open (CC BY 4.0) | No | No | No | MDPI; direct PDF access |
-| `agg_uniprot` | Open | No | No | No | REST API; NCBI email recommended for Entrez |
-| `agg_ncbi_taxonomy` | Open | Email (recommended) | No | No | Biopython Entrez; register email per NCBI policy |
-| `gh_dramp_github` | Open | No (GitHub account optional) | No | No | Public repo; `git clone` or ZIP |
-| `ml_qmap` | Open | No (Hugging Face account optional) | No | No | Hugging Face datasets; pip install datasets |
-| `db_apd6` | Open | No | No | No | Web download; FASTA lists on downloads page |
+| `paper_hu_fmicb_2022_alpha_helix` | Open (CC BY Frontiers-style) | No | No | No | Journal/PMC Frontiers PDF (`fmicb-13-870361.pdf`) |
+| `paper_melittin_processes_mdpi` | Open (CC BY 4.0) | No | No | No | MDPI Processes (`processes-14-01630.pdf`) |
 
 All sources are freely accessible without institutional subscription. No paywalled sources are included in this source map.
 
@@ -158,14 +123,12 @@ All sources are freely accessible without institutional subscription. No paywall
 |-----------|------------------|--------|-------------------|
 | `db_dbaasp` | Structured records with per-assay MIC | JSON (API) or CSV (export) | High — each record has defined fields |
 | `db_dramp` | Structured records with target organism MIC | Excel / CSV | High — all fields annotated |
-| `db_campr4` | Structured records with MIC | HTML table / exported CSV | Medium — web-scraped; some fields inconsistent |
+| `db_campr4` | HTML cards with optional MIC in Target column | Requests + regex | Medium — heterogeneous formatting in Target field |
 | `paper_ramata_stunda_2023` | PDF table (Table 2) | PDF → pdfplumber CSV | High — clean grid table, numeric values |
-| `paper_zhang_2024` | PDF table (MIC grid) | PDF → pdfplumber CSV | Medium — merged cells possible; unit µM |
-| `paper_lee_2023` | PDF table (Table 1) | PDF → pdfplumber CSV | High — clean table, explicit strain names |
-| `agg_uniprot` | Protein metadata | JSON (REST) | High |
-| `agg_ncbi_taxonomy` | Taxonomy metadata | XML (Entrez) | High |
-| `gh_dramp_github` | Aggregated sequence data | Excel (.xlsx) | Medium — multiple sheets, nested structure |
-| `ml_qmap` | MIC regression splits | Parquet / CSV | High — pre-processed, consistent columns |
+| `paper_zhang_2024` | PDF table (MIC grid) | PDF → pdfplumber CSV | Medium — merged cells possible; MIC quoted in µM |
+| `paper_lee_2023` | PDF table (Table 1) | PDF → pdfplumber | High — clean table, explicit strain names |
+| `paper_hu_fmicb_2022_alpha_helix` | Large PDF MIC grid (TABLE 1) | PDF → pdfplumber | High — dense matrix; relies on caption pathogen mapping |
+| `paper_melittin_processes_mdpi` | PDF MIC tables | PDF → pdfplumber | Medium — multi-table layout across several pages |
 
 ---
 
@@ -185,9 +148,9 @@ A paper included in our PDF set (e.g., `paper_ramata_stunda_2023`) may already b
 
 ### Unit inconsistency (µg/mL vs. µM)
 
-`paper_zhang_2024` reports MIC in µM; all databases and other papers use µg/mL.
+`paper_zhang_2024`, `paper_lee_2023`, and several other peptide-centric tables report MIC in **µM** (`measurement_unit` = `uM`). Ramata-Stunda, Hu *Frontiers*, melittin *Processes*, and most database snapshots express MIC chiefly as **µg/mL**.
 
-**Resolution rule:** Store the value as reported in `measurement_value`; record the original unit in `notes`; compute `normalized_value_ug_ml` in Practice 5 using `molecular_weight_da` via: µM × MW_Da / 1000 = µg/mL.
+**Resolution rule:** Store MIC text in `measurement_value` exactly as decoded from the publication; canonicalize declared units via `measurement_unit` (`ug/mL`, `uM`, …).
 
 ### Numeric MIC value disagreement
 
@@ -199,21 +162,16 @@ Two databases may cite the same paper but report different MIC values (e.g., rou
 
 Sources report MIC as ranges ("4–8 µg/mL"), greater-than bounds (">128 µg/mL"), or less-than bounds ("<1 µg/mL").
 
-**Resolution rule (from Practice 1 schema):** `measurement_value` = null; full expression and unit recorded in `notes`. Do not store the bound as an exact value.
-
-### Predicted vs. experimental confusion in ML datasets
-
-`ml_qmap` is derived from DBAASP and should contain only experimental values, but the ESCAPE dataset and similar aggregations explicitly mix experimental and ML-predicted MICs.
-
-**Resolution rule:** Use only `ml_qmap` for cross-validation, not primary extraction. For any record where experimental provenance cannot be confirmed, exclude from the dataset and document in the extraction log.
+**Resolution rule (Practice 1 schema):** Preserve ranges and censored bounds inside `measurement_value` wherever possible (`>128`, `4-8 µg/mL`, etc.).
 
 ---
+
 
 ## Coverage gaps
 
 ### Pathogen coverage
 
-The three paper sources focus on ESKAPE pathogens (*E. coli*, *S. aureus*, *P. aeruginosa*, *K. pneumoniae*, *E. faecium*, *A. baumannii*) and skin pathogens (*C. acnes*). DBAASP and DRAMP cover a broader taxonomic range, but coverage thins rapidly outside the most-studied species.
+The five PDF-backed paper sources widen coverage beyond databases alone (*E. coli*, *S. aureus*, MRSA cohorts, *C. acnes*, selected CMCC reference strains, CAMHB panels); they still tilt toward intensely studied pathogens. DBAASP and DRAMP broaden taxonomic breadth, but rarity increases quickly beyond model/clinical favourites.
 
 **Under-represented taxa:**
 - *Mycobacterium tuberculosis* (Gram-indeterminate; different assay conditions — MABA/LORA methods)
@@ -234,7 +192,7 @@ Most reported MIC values use CLSI broth microdilution (37°C, MHB, 5×10⁵ CFU/
 
 ### Temporal coverage
 
-The three selected papers span 2023–2024. DBAASP and DRAMP cover literature from 1970s to 2024. Older records may lack sequence data (pre-sequencing era peptides).
+The anchored PDF corpus spans **2022–2026**, while DBAASP/DRAMP index decades of literature through 2024+. Older records occasionally lack peptide sequences altogether (pre-modern sequencing eras).
 
 **Plan:** No explicit date filter applied. Records without `peptide_sequence` are excluded (required field per schema).
 
@@ -242,7 +200,7 @@ The three selected papers span 2023–2024. DBAASP and DRAMP cover literature fr
 
 Databases over-represent synthetic AMPs (DRAMP: 17,886 patent entries). Our extraction prioritises experimentally validated, sequence-confirmed peptides. Non-ribosomal and lipopeptide AMPs are covered by DBAASP but may require special handling of non-standard amino acid codes in `peptide_sequence`.
 
-**Plan:** Accept the bias toward synthetic/designed AMPs as a realistic reflection of the current literature. Record `synthesis_type` and `peptide_modifications` to allow downstream stratification.
+**Plan:** Accept the bias toward synthetic/designed AMPs as a realistic reflection of the current literature. Record `synthesis_type` whenever the extractor can infer it so downstream stratification remains possible.
 
 ### Geographic and language coverage
 

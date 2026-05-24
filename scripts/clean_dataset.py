@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
 import pandas as pd
+
+from utils import canonical_measurement_unit, pathogen_contains_nonbacterial_hint
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -85,6 +88,17 @@ def normalize_gram_stain(value: object) -> str | None:
     return text
 
 
+def normalize_measurement_unit(value: object) -> str | None:
+    if pd.isna(value) or value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in MISSING_TOKENS:
+        return None
+    canon = canonical_measurement_unit(text)
+    out = str(canon).strip()
+    return out if out else None
+
+
 def normalize_integer(value: object) -> int | None:
     if pd.isna(value) or value is None or str(value).strip() == "":
         return None
@@ -103,15 +117,18 @@ def normalize_float(value: object) -> float | None:
 def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
+    if "pathogen_name" in out.columns:
+        before_nb = len(out)
+        fungal_mask = out["pathogen_name"].map(pathogen_contains_nonbacterial_hint)
+        out = out.loc[~fungal_mask].copy()
+        dropped_nb = before_nb - len(out)
+        if dropped_nb:
+            print(
+                f"Dropped {dropped_nb} row(s) with yeast/fungi/virus/mammalian pathogen hints in pathogen_name."
+            )
+
     if "peptide_sequence" in out.columns:
         out["peptide_sequence"] = out["peptide_sequence"].map(normalize_sequence)
-
-    if "peptide_length" in out.columns:
-        computed_lengths = out["peptide_sequence"].map(lambda s: len(s) if s else None)
-        out["peptide_length"] = [
-            normalize_integer(length) or (computed if computed else None)
-            for length, computed in zip(out["peptide_length"], computed_lengths)
-        ]
 
     if "synthesis_type" in out.columns:
         out["synthesis_type"] = out["synthesis_type"].map(normalize_synthesis_type)
@@ -119,7 +136,7 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "gram_stain" in out.columns:
         out["gram_stain"] = out["gram_stain"].map(normalize_gram_stain)
 
-    for col in ("molecular_weight_da", "temperature_c", "incubation_time_h"):
+    for col in ("temperature_c", "incubation_time_h"):
         if col in out.columns:
             out[col] = out[col].map(normalize_float)
 
@@ -129,17 +146,15 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "measurement_value" in out.columns:
         out["measurement_value"] = out["measurement_value"].map(normalize_verbatim_mic)
 
-    if "normalized_value_ug_ml" in out.columns:
-        out["normalized_value_ug_ml"] = out["normalized_value_ug_ml"].map(normalize_verbatim_mic)
+    if "measurement_unit" in out.columns:
+        out["measurement_unit"] = out["measurement_unit"].map(normalize_measurement_unit)
 
     for col in out.columns:
         if col in (
             "record_id",
             "peptide_sequence",
             "measurement_value",
-            "normalized_value_ug_ml",
-            "peptide_length",
-            "molecular_weight_da",
+            "measurement_unit",
             "temperature_c",
             "incubation_time_h",
             "publication_year",
@@ -175,8 +190,6 @@ def load_schema_columns() -> list[str]:
 def load_input_frame() -> pd.DataFrame:
     if MERGED_PATH.is_file():
         return pd.read_csv(MERGED_PATH)
-    import importlib.util
-
     build_path = ROOT / "scripts" / "build_dataset.py"
     spec = importlib.util.spec_from_file_location("build_dataset", build_path)
     if spec is None or spec.loader is None:

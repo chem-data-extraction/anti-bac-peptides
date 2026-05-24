@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import csv
-import io
 import json
 import re
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from utils import (
+    canonical_measurement_unit,
+    pathogen_contains_nonbacterial_hint,
+    unit_context_note,
+    verbatim_measurement_value,
+)
+
 SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
 PROVENANCE_FIELDS = ("extraction_method", "extraction_confidence", "notes")
 STANDARD_AA = set("ACDEFGHIKLMNPQRSTVWYX")
@@ -40,44 +51,6 @@ def normalize_sequence(seq: object) -> str:
     return "".join(c for c in text if c in STANDARD_AA)
 
 
-def normalize_mic_to_ug_ml(
-    value: object, unit: str, mw_da: float | None
-) -> tuple[object, object, str]:
-    """Derive comparable µg/mL when possible; measurement_value stays the verbatim concentration string."""
-    unit_l = str(unit or "ug/mL").strip().lower().replace("µ", "u").replace("μ", "u")
-    notes = f"unit={unit_l}"
-    if value is None or str(value).strip() == "":
-        return "", "", notes
-
-    raw_mv = str(value).strip()
-    text = raw_mv.replace(",", ".").replace("−", "-")
-    censored = text.startswith((">", "<"))
-    prefix = ">" if text.startswith(">") else ("<" if text.startswith("<") else "")
-    try:
-        num = float(text.lstrip("><"))
-    except ValueError:
-        return raw_mv, raw_mv, notes
-
-    norm: float | str
-    if unit_l in ("ug/ml",):
-        norm = round(num, 6)
-    elif unit_l in ("mg/l",):
-        norm = round(num, 6)
-    elif unit_l in ("um", "u m") and mw_da:
-        norm = round(num * float(mw_da) / 1000.0, 6)
-    elif unit_l in ("um", "u m"):
-        norm = round(num, 6) if not censored else f"{prefix}{num}"
-    else:
-        norm = round(num, 6) if not censored else f"{prefix}{num}"
-
-    if censored:
-        nv = f"{prefix}{norm}" if isinstance(norm, (int, float)) else str(norm)
-        notes = f"{notes}; censored bound"
-        return raw_mv, nv, notes
-
-    return raw_mv, norm, notes
-
-
 def row_to_output(row: dict, columns: list[str]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for col in columns:
@@ -101,43 +74,28 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
 
 
+def effective_record_cap(page: dict, global_default: int) -> int | None:
+    """Per-source record ceiling; None = no cap within fetcher safeguards."""
+    if "max_records" in page:
+        v = page["max_records"]
+        if v is None:
+            return None
+        if isinstance(v, str) and v.lower() in {"unlimited", "none"}:
+            return None
+        return int(v)
+    return int(global_default)
+
+
 MANIFEST = ROOT / "specs/web_extraction_manifest.json"
 OUTPUT_CSV = ROOT / "data/extracted/web_extracted_records.csv"
 LOG_PATH = ROOT / "data/extracted/extraction_log.jsonl"
 
 DBAASP_PEPTIDES_URL = "https://dbaasp.org/peptides"
 RATE_LIMIT_S = 1.0
-XLSX_MAGIC = b"PK\x03\x04"
-
-NON_BACTERIAL = (
-    "candida", "fungus", "fungal", "virus", "viral", "mammalian",
-    "erythrocyte", "human", "mouse", "cancer", "tumor", "hela",
-)
 
 
 def is_bacterial_target(species_name: str) -> bool:
-    lower = species_name.lower()
-    return not any(x in lower for x in NON_BACTERIAL)
-
-
-DRAMP_MIC_PATTERN = re.compile(
-    r"\(MIC[=<>≤]?\s*([\d.>]+)\s*([μuµ]?g/ml|[μuµ]?M|mg/L|pmol/ml|nM)?\)",
-    re.IGNORECASE,
-)
-
-
-def _pathogen_before_mic(text: str, mic_start: int) -> str:
-    chunk = text[:mic_start]
-    sep = max(chunk.rfind(","), chunk.rfind(";"))
-    segment = chunk[sep + 1 :].strip()
-    while segment.endswith(")"):
-        open_idx = segment.rfind("(")
-        if open_idx == -1:
-            break
-        segment = segment[:open_idx].strip()
-    if ":" in segment and segment.index(":") < 40:
-        segment = segment.split(":", 1)[1].strip()
-    return segment
+    return not pathogen_contains_nonbacterial_hint(species_name)
 
 
 def append_log(entry: dict) -> None:
@@ -214,12 +172,6 @@ def format_inoculum_cfu(act: dict) -> str:
 def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: int) -> list[dict]:
     seq = normalize_sequence(card.get("sequence", ""))
     name = card.get("name") or card.get("majorName") or card.get("dbaaspId") or ""
-    length = card.get("sequenceLength", len(seq) if seq else "")
-    mw = card.get("molecularWeight") or card.get("mw")
-    try:
-        mw_f = float(mw) if mw not in (None, "") else None
-    except (TypeError, ValueError):
-        mw_f = None
 
     synthesis = ""
     st = card.get("synthesisType")
@@ -250,37 +202,41 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
 
         unit_obj = act.get("unit") or {}
         unit = unit_obj.get("name", "ug/mL") if isinstance(unit_obj, dict) else str(unit_obj or "ug/mL")
+        meas_unit_out = canonical_measurement_unit(unit)
         raw_value = act.get("concentration", "")
         if str(raw_value).upper() in ("NA", "N/A", "-", ""):
             continue
 
-        mv, nv, note = normalize_mic_to_ug_ml(raw_value, unit, mw_f)
+        mv = verbatim_measurement_value(raw_value)
+        if not mv:
+            continue
+
         medium_obj = act.get("medium") or {}
         medium = medium_obj.get("name", "") if isinstance(medium_obj, dict) else ""
 
         medi_compose = compose_medium_composition(act, medium_obj)
 
-        slug_path = slugify(pathogen_name.split()[0])[:6] if pathogen_name else "unk"
+        slug_path = (
+            slugify(pathogen_name.split()[0])[:6] if pathogen_name else "unk"
+        )
 
         idx = idx_start + len(rows) + 1
+        una = unit_context_note(unit)
         rows.append({
             "record_id": (
                 f"rec_{slugify(str(name))[:12]}_{slug_path}"
                 f"_{source_id[:6]}_{idx:03d}"
             ),
             "peptide_sequence": seq,
-            "peptide_length": length,
-            "molecular_weight_da": mw_f or "",
             "peptide_name": name,
             "organism_source": organism,
             "synthesis_type": synthesis.lower() if synthesis else "",
-            "peptide_modifications": "",
             "pathogen_name": pathogen_name,
             "pathogen_strain": strain,
             "gram_stain": "",
             "measurement_type": "MIC",
             "measurement_value": mv,
-            "normalized_value_ug_ml": nv,
+            "measurement_unit": meas_unit_out,
             "assay_method": "",
             "medium": medium,
             "medium_composition": medi_compose,
@@ -294,12 +250,12 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
             "doi": "",
             "extraction_method": "web_api",
             "extraction_confidence": "high",
-            "notes": f"DBAASP /peptides/{{id}}; dbaaspId={card.get('dbaaspId', '')}; {note}".strip("; "),
+            "notes": f"DBAASP /peptides/{{id}}; dbaaspId={card.get('dbaaspId', '')}; {una}".strip("; "),
         })
     return rows
 
 
-def fetch_dbaasp(page: dict, max_records: int) -> tuple[list[dict], str]:
+def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     requests = _try_import("requests")
     if requests is None:
         print("  [DBAASP] requests not installed — skipping.")
@@ -315,7 +271,19 @@ def fetch_dbaasp(page: dict, max_records: int) -> tuple[list[dict], str]:
     page_num = 0
     page_size = 50
 
-    while len(rows) < max_records and page_num < 40:
+    max_pages_raw = page.get("dbaasp_max_list_pages", 260)
+    try:
+        max_pages = max(1, int(max_pages_raw))
+    except (TypeError, ValueError):
+        max_pages = 260
+
+    while True:
+        if page_num >= max_pages:
+            break
+        hit_cap = record_cap is not None and len(rows) >= record_cap
+        if hit_cap:
+            break
+
         print(f"  [DBAASP] GET /peptides?page={page_num}&size={page_size}")
         time.sleep(RATE_LIMIT_S)
         try:
@@ -337,7 +305,8 @@ def fetch_dbaasp(page: dict, max_records: int) -> tuple[list[dict], str]:
             break
 
         for summary in peptides:
-            if len(rows) >= max_records:
+            hit_cap_inner = record_cap is not None and len(rows) >= record_cap
+            if hit_cap_inner:
                 break
             pid = summary.get("id")
             complexity = summary.get("complexity") or {}
@@ -366,9 +335,12 @@ def fetch_dbaasp(page: dict, max_records: int) -> tuple[list[dict], str]:
 
             parsed = parse_dbaasp_card(card, source_id, source_url, len(rows))
             rows.extend(parsed)
-            if len(rows) >= max_records:
-                rows = rows[:max_records]
+            if record_cap is not None and len(rows) >= record_cap:
+                rows = rows[:record_cap]
                 break
+
+        if record_cap is not None and len(rows) >= record_cap:
+            break
 
         page_num += 1
 
@@ -377,136 +349,363 @@ def fetch_dbaasp(page: dict, max_records: int) -> tuple[list[dict], str]:
     return rows, "web_api"
 
 
-def is_valid_xlsx(raw_bytes: bytes) -> bool:
-    return len(raw_bytes) > 1000 and raw_bytes.startswith(XLSX_MAGIC)
+# --- DRAMP: local workbook (bulk general_amps sheet); Target_Organism free text with `(MIC …)` ---
+MIC_IN_PARENS = re.compile(r"\(\s*MIC\b\s*([^)]+)\)", re.IGNORECASE)
+
+def _split_mic_numeric_and_unit(fragment: str) -> tuple[str, str]:
+    """Split DRAMP/CAMP inner MIC text into value + compound unit suffix."""
+    frag = unicodedata.normalize("NFKC", fragment or "").strip()
+    frag = frag.lstrip("=").strip().replace(",", ".")
+    frag = (
+        frag.replace("microgram/ml", "µg/ml")
+        .replace("micrograms/ml", "µg/ml")
+        .replace("microg/ml", "µg/ml")
+    )
+    # Optional comparison symbol fused to digits: ≤13μg/ml
+    m_space = re.match(
+        r"^([≤≥=<>]?)\s*([\d.]+\s*(?:/\s+|[-−–]\s*[\d.]*)?)\s+(.+)$",
+        frag,
+    )
+    if m_space:
+        sym, nums, tail = m_space.group(1), m_space.group(2), m_space.group(3)
+        val = verbatim_measurement_value(sym + nums.replace(" ", ""))
+        return val.strip() if isinstance(val, str) else "", tail.strip()
+
+    m_tight = re.match(
+        r"^([≤≥=<>]?)([\d.]+(?:/[\d.]+|[-−–][\d.]+)?)([^\d][^\s]*)$",
+        frag,
+    )
+    if m_tight:
+        sym2, nums2, trailing = m_tight.group(1), m_tight.group(2), (m_tight.group(3) or "").lstrip("/")
+        val2 = verbatim_measurement_value(sym2 + nums2.replace(" ", ""))
+        combined_unit = trailing.strip()
+        return (val2 or "").strip(), combined_unit
+
+    return "", ""
 
 
-def parse_dramp_target_field(
-    target_field: str,
-    row_data: Any,
-    source_id: str,
-    idx_start: int,
-) -> list[dict]:
-    rows: list[dict] = []
-    seq = normalize_sequence(row_data.get("Sequence", ""))
-    name = str(row_data.get("Name", "")).strip()
-    organism = str(row_data.get("Source", "")).strip()
+def _dramp_mic_inner_to_value_unit(inner_raw: str) -> tuple[str, str]:
+    """Return (verbatim_measurement_value, unit_raw_hint) from DRAMP `(MIC …)` payload."""
+    vv, unit_raw_hint = _split_mic_numeric_and_unit(inner_raw)
+    if not vv:
+        return "", ""
+    unit_raw_hint = unicodedata.normalize("NFKC", unit_raw_hint)
+    unit_compact = re.sub(r"\s+", "", unit_raw_hint) if unit_raw_hint else ""
+    return vv, unit_compact
 
-    for m in DRAMP_MIC_PATTERN.finditer(str(target_field)):
-        pathogen_raw = _pathogen_before_mic(str(target_field), m.start())
-        if not pathogen_raw or not is_bacterial_target(pathogen_raw):
+
+def organism_before_mic_paren(text_full: str, mic_open_idx: int) -> str:
+    """Best-effort pathogen substring before `(MIC …)` from a comma-/semicolon-heavy field."""
+    pre = text_full[:mic_open_idx].rstrip(",; ")
+    for sep in (",", ";", ":"):
+        j = pre.rfind(sep)
+        if j != -1:
+            cand = pre[j + 1 :].strip(",; ")
+            if cand:
+                return cand
+    return pre.strip(",; ") if pre else ""
+
+
+def iter_dramp_target_mic_rows(target_text: str) -> list[tuple[str, str, str]]:
+    """Yield (organism_fragment, verbatim_value, raw_unit_fragment) segments from DRAMP Target_Organism."""
+    if not target_text or str(target_text).strip().upper() == "NAN":
+        return []
+    nt = unicodedata.normalize("NFKC", str(target_text))
+    out: list[tuple[str, str, str]] = []
+    for m in MIC_IN_PARENS.finditer(nt):
+        inner = (m.group(1) or "").strip()
+        if not inner.lstrip("=≤≥<>").strip():
             continue
-        raw_mic = m.group(1)
-        unit = m.group(2) or "ug/mL"
-        mv, nv, note = normalize_mic_to_ug_ml(raw_mic, unit, None)
-        pathogen_slug = slugify(pathogen_raw.split()[0])[:6] or "unk"
-        idx = idx_start + len(rows) + 1
-        rows.append({
-            "record_id": (
-                f"rec_{slugify(name or 'pep')[:12]}_{pathogen_slug}"
-                f"_{source_id[:5]}_{idx:03d}"
-            ),
-            "peptide_sequence": seq,
-            "peptide_length": len(seq) if seq else row_data.get("Sequence_Length", ""),
-            "molecular_weight_da": "",
-            "peptide_name": name,
-            "organism_source": organism,
-            "synthesis_type": "",
-            "peptide_modifications": "",
-            "pathogen_name": pathogen_raw.split("(")[0].strip(),
-            "pathogen_strain": "",
-            "gram_stain": "",
-            "measurement_type": "MIC",
-            "measurement_value": mv,
-            "normalized_value_ug_ml": nv,
-            "assay_method": "",
-            "medium": "",
-            "medium_composition": "",
-            "inoculum_cfu_ml": "",
-            "temperature_c": "",
-            "incubation_time_h": "",
-            "source_id": source_id,
-            "source_type": "database",
-            "publication_year": "",
-            "source_url": "",
-            "doi": str(row_data.get("Pubmed_ID", "") or ""),
-            "extraction_method": "bulk_download_excel",
-            "extraction_confidence": "medium",
-            "notes": f"DRAMP {row_data.get('DRAMP_ID', '')}; {note}".strip("; "),
-        })
-    return rows
+        vv, unit = _dramp_mic_inner_to_value_unit(inner)
+        if not vv:
+            continue
+        org_frag = organism_before_mic_paren(nt, m.start()).strip(",; ")
+        if not org_frag or len(org_frag) < 3:
+            continue
+        out.append((org_frag, vv, unit))
+    return out
 
 
-def fetch_dramp(page: dict, max_records: int) -> tuple[list[dict], str]:
-    requests = _try_import("requests")
-    pandas = _try_import("pandas")
-    if requests is None or pandas is None:
-        missing = ", ".join(n for n, m in [("requests", requests), ("pandas", pandas)] if m is None)
-        print(f"  [DRAMP] Missing: {missing} — skipping.")
+def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
+    pd_local = _try_import("pandas")
+    if pd_local is None:
+        print("  [DRAMP] pandas not installed — skipping.")
+        return [], "missing_dependency"
+    raw_rel = page.get("local_workbook_path") or "data/raw/web/dramp_general_dataset.xlsx"
+    path = ROOT / raw_rel
+    if not path.is_file():
+        print(f"  [DRAMP] Missing workbook {path.relative_to(ROOT)} — skipping.")
+        return [], "missing_file"
+
+    sheet = page.get("sheet_name") or "general_amps"
+    source_id = page["source_id"]
+    source_base = page.get("url", "https://dramp.cpu-bioinfor.org").rstrip("/")
+    doi = page.get("doi", "10.1093/nar/gkae1008")
+
+    df = pd_local.read_excel(path, sheet_name=sheet)
+
+    rows: list[dict] = []
+    for _, r in df.iterrows():
+        if record_cap is not None and len(rows) >= record_cap:
+            break
+        act = str(r.get("Activity", "") or "").lower()
+        if "antibacterial" not in act:
+            continue
+        tgt = str(r.get("Target_Organism") or "").strip()
+        seq = normalize_sequence(str(r.get("Sequence") or "").strip())
+        if not seq:
+            continue
+
+        peptide_name = str(r.get("Name") or "").strip()
+        organism_source = str(r.get("Source") or "").strip()
+        dramp_id = str(r.get("DRAMP_ID") or "").strip()
+
+        segments = iter_dramp_target_mic_rows(tgt)
+        if not segments:
+            continue
+
+        for org_frag, vv, unit_raw_hint in segments:
+            if record_cap is not None and len(rows) >= record_cap:
+                break
+            pathogen_name, strain = split_pathogen_strain(org_frag)
+            if not pathogen_name or pathogen_contains_nonbacterial_hint(pathogen_name + " " + strain):
+                continue
+
+            slug_path = slugify(pathogen_name.split()[0])[:8] if pathogen_name else "unk"
+            idx = len(rows) + 1
+            canon_u = canonical_measurement_unit(unit_raw_hint or "")
+            mv = vv
+            if not mv:
+                continue
+            notes = (
+                f"DRAMP row {dramp_id}; Target_Organism segment; PMID={str(r.get('Pubmed_ID') or '').strip()} "
+                f"{unit_context_note(unit_raw_hint)}"
+            ).strip()
+            rows.append(
+                {
+                    "record_id": f"rec_dramp_{slugify(dramp_id)[:14]}_{slug_path}_{idx:04d}",
+                    "peptide_sequence": seq,
+                    "peptide_name": peptide_name,
+                    "organism_source": organism_source,
+                    "synthesis_type": "",
+                    "pathogen_name": pathogen_name,
+                    "pathogen_strain": strain,
+                    "gram_stain": "",
+                    "measurement_type": "MIC",
+                    "measurement_value": mv,
+                    "measurement_unit": canon_u if canon_u else (unit_raw_hint or ""),
+                    "assay_method": "",
+                    "medium": "",
+                    "medium_composition": "",
+                    "inoculum_cfu_ml": "",
+                    "temperature_c": "",
+                    "incubation_time_h": "",
+                    "source_id": source_id,
+                    "source_type": "database",
+                    "publication_year": "",
+                    "source_url": source_base,
+                    "doi": doi,
+                    "extraction_method": "local_bulk_xlsx",
+                    "extraction_confidence": "medium",
+                    "notes": notes,
+                }
+            )
+
+    meta = {
+        "workbook_relative": raw_rel,
+        "sheet": sheet,
+        "rows_written": len(rows),
+        "workbook_mtime": datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    snap_path = ROOT / page.get(
+        "raw_snapshot_path",
+        "data/raw/web/dramp_extraction_run_meta.json",
+    )
+    save_snapshot(snap_path, json.dumps(meta, ensure_ascii=False, indent=2).encode("utf-8"))
+
+    print(
+        f"  [DRAMP] Parsed {len(rows)} MIC record(s); metadata snapshot: "
+        f"{snap_path.relative_to(ROOT)}"
+    )
+    return rows, "local_bulk_xlsx"
+
+
+def harvest_campr_ids_from_list_html(html: str) -> list[str]:
+    """Preserve first-seen order (HTML row order within the listing page)."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for m in re.finditer(r"seqDisp\.php\?id=(CAMPSQ\d+)", html, flags=re.I):
+        cid = m.group(1)
+        key = cid.upper()
+        if key not in seen:
+            seen.add(key)
+            ordered.append(cid)
+    return ordered
+
+
+def scrape_campr_field(html_norm: str, label: str) -> str:
+    pat = rf'<td[^>]*>\s*<b>\s*{re.escape(label)}\s*:\s*</b>\s*</td>\s*<td[^>]*(?:align=[^>]*)?\s*>(.*?)</td>'
+    mm = re.search(pat, html_norm, flags=re.I | re.DOTALL | re.MULTILINE)
+    if not mm:
+        return ""
+    chunk = mm.group(1)
+    chunk = re.sub(r"<div[^>]*>", " ", chunk, flags=re.I)
+    chunk = re.sub(r"</div>", " ", chunk, flags=re.I)
+    chunk = re.sub(r"<a[^>]+>", " ", chunk, flags=re.I)
+    chunk = re.sub(r"<[^>]+>", " ", chunk)
+    chunk = re.sub(r"\s+", " ", chunk)
+    return chunk.strip()
+
+
+def fetch_campr_sequences(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
+    requests_mod = _try_import("requests")
+    if requests_mod is None:
+        print("  [CAMPR/CAMP] requests not installed — skipping.")
         return [], "missing_dependency"
 
-    download_url = page.get("download_url", "")
-    snap_path = ROOT / page["raw_snapshot_path"]
     source_id = page["source_id"]
-    source_url = page.get("url", "")
-
-    raw_bytes = b""
-    if snap_path.is_file() and is_valid_xlsx(snap_path.read_bytes()):
-        print(f"  [DRAMP] Using cached snapshot: {snap_path.relative_to(ROOT)}")
-        raw_bytes = snap_path.read_bytes()
-    else:
-        if snap_path.is_file():
-            print(f"  [DRAMP] Invalid cache — re-downloading from {download_url}")
-        else:
-            print(f"  [DRAMP] Downloading: {download_url}")
-        time.sleep(RATE_LIMIT_S)
-        try:
-            resp = requests.get(
-                download_url,
-                timeout=120,
-                headers={"User-Agent": "AMP-MIC-Dataset/1.0"},
-            )
-            resp.raise_for_status()
-            raw_bytes = resp.content
-            if not is_valid_xlsx(raw_bytes):
-                raise ValueError(f"Not a valid xlsx ({len(raw_bytes)} bytes)")
-            save_snapshot(snap_path, raw_bytes)
-            print(f"  [DRAMP] Saved {len(raw_bytes)} bytes to {snap_path.relative_to(ROOT)}")
-        except Exception as exc:
-            print(f"  [DRAMP] Download error: {exc}")
-            return [], "download_error"
+    base_site = (
+        page.get("camp_site_origin", "https://camp.bicnirrh.res.in").strip().rstrip("/")
+        or "https://camp.bicnirrh.res.in"
+    )
+    list_pat = (
+        page.get("list_url_pattern")
+        or base_site + "/seqDb.php?page={page}&natural=natural"
+    )
+    hdr = {"User-Agent": "AMP-MIC-Dataset/1.0 (academic)", "Accept": "text/html"}
+    snap_ids: dict[str, list[str]] = {}
 
     try:
-        df = pandas.read_excel(io.BytesIO(raw_bytes), engine="openpyxl")
-    except Exception as exc:
-        print(f"  [DRAMP] Parse error: {exc}")
-        return [], "parse_error"
+        page_first = int(page.get("campr_list_page_first", 0))
+    except (TypeError, ValueError):
+        page_first = 0
+    try:
+        max_pages = max(1, int(page.get("campr_max_list_pages", 3)))
+    except (TypeError, ValueError):
+        max_pages = 3
 
-    print(f"  [DRAMP] Loaded {len(df)} rows")
-    rows: list[dict] = []
-    for _, row_data in df.iterrows():
-        if len(rows) >= max_records:
-            break
-        target_field = row_data.get("Target_Organism", "")
-        if pandas.isna(target_field) or "MIC" not in str(target_field).upper():
-            continue
+    all_ids_ordered: list[str] = []
+    for p_ix in range(page_first, page_first + max_pages):
+        url = list_pat.replace("{orig}", base_site).format(page=p_ix)
+        time.sleep(page.get("rate_limit_s", RATE_LIMIT_S))
         try:
-            parsed = parse_dramp_target_field(str(target_field), row_data, source_id, len(rows))
+            r = requests_mod.get(url, headers=hdr, timeout=75)
+            r.raise_for_status()
+            body = r.text
         except Exception as exc:
-            print(f"  [DRAMP] Row parse error: {exc}")
+            print(f"  [CAMPR/CAMP] List page error {url}: {exc}")
             continue
-        for rec in parsed:
-            if len(rows) >= max_records:
-                break
-            rows.append(rec)
+        found = harvest_campr_ids_from_list_html(body)
+        snap_ids[str(p_ix)] = found
+        for cid in found:
+            if cid not in all_ids_ordered:
+                all_ids_ordered.append(cid)
 
-    print(f"  [DRAMP] Parsed {len(rows)} MIC record(s).")
-    return rows, "bulk_download_excel"
+    save_snapshot(
+        ROOT
+        / page.get(
+            "raw_snapshot_path",
+            "data/raw/web/campr4_harvest_snapshot.json",
+        ),
+        json.dumps(
+            [{"url_idx": idx, "ids_added": ids} for idx, ids in snap_ids.items()],
+            ensure_ascii=False,
+            indent=2,
+        ).encode("utf-8"),
+    )
+
+    rows: list[dict] = []
+    for cid in all_ids_ordered:
+        if record_cap is not None and len(rows) >= record_cap:
+            break
+        time.sleep(page.get("rate_limit_s", RATE_LIMIT_S))
+        detail_url = f"{base_site}/seqDisp.php?id={cid}"
+        try:
+            r = requests_mod.get(detail_url, headers=hdr, timeout=75)
+            r.raise_for_status()
+            html_norm = unicodedata.normalize("NFKC", r.text.replace("\xa0", " "))
+        except Exception as exc:
+            print(f"  [CAMPR/CAMP] Detail {cid} error: {exc}")
+            continue
+
+        activity = scrape_campr_field(html_norm, "Activity")
+        if "antibacterial" not in activity.lower():
+            continue
+        title = scrape_campr_field(html_norm, "Title")
+        source_org = scrape_campr_field(html_norm, "Source")
+        target_txt = scrape_campr_field(html_norm, "Target")
+        if not target_txt.strip():
+            continue
+
+        seq_m = re.search(
+            r'<td[^>]*class\s*=\s*["\']fasta["\'][^>]*>\s*([A-Za-z]+)\s*</td>',
+            html_norm,
+            re.I | re.MULTILINE,
+        )
+        if not seq_m:
+            continue
+        seq = normalize_sequence(seq_m.group(1))
+        if not seq:
+            continue
+
+        pm = re.search(r"pubmed\.ncbi\.nlm\.nih\.gov/(\d+)", html_norm, re.I)
+        pmid_note = pm.group(1) if pm else ""
+
+        segments = iter_dramp_target_mic_rows(target_txt)  # same `(MIC …)` convention
+        for org_frag, vv, unit_raw_hint in segments:
+            if record_cap is not None and len(rows) >= record_cap:
+                break
+            pathogen_name, strain = split_pathogen_strain(org_frag)
+            if (
+                pathogen_contains_nonbacterial_hint(pathogen_name)
+                or pathogen_contains_nonbacterial_hint(org_frag)
+            ):
+                continue
+            canon_u = canonical_measurement_unit(unit_raw_hint or "")
+            slug_path = slugify(pathogen_name.split()[0])[:8] if pathogen_name else "unk"
+            idx = len(rows) + 1
+            notes = (
+                f"CAMP/CAMPR4 {cid}; PMID={pmid_note}; Target={target_txt[:200]!r}; "
+                f"{unit_context_note(unit_raw_hint)}"
+            )
+            rows.append(
+                {
+                    "record_id": f"rec_{slugify(cid)}_{slug_path}_{idx:04d}",
+                    "peptide_sequence": seq,
+                    "peptide_name": title,
+                    "organism_source": source_org,
+                    "synthesis_type": "",
+                    "pathogen_name": pathogen_name,
+                    "pathogen_strain": strain,
+                    "gram_stain": "",
+                    "measurement_type": "MIC",
+                    "measurement_value": vv,
+                    "measurement_unit": canon_u if canon_u else (unit_raw_hint or ""),
+                    "assay_method": "",
+                    "medium": "",
+                    "medium_composition": "",
+                    "inoculum_cfu_ml": "",
+                    "temperature_c": "",
+                    "incubation_time_h": "",
+                    "source_id": source_id,
+                    "source_type": "database",
+                    "publication_year": "",
+                    "source_url": detail_url,
+                    "doi": page.get("doi", "10.1093/nar/gkac1012"),
+                    "extraction_method": "web_html_seed_list",
+                    "extraction_confidence": "medium",
+                    "notes": notes,
+                }
+            )
+
+    print(f"  [CAMPR/CAMP] Parsed {len(rows)} MIC record(s)")
+    return rows, "web_html_seed_list"
 
 
 FETCHERS = {
     "db_dbaasp": fetch_dbaasp,
     "db_dramp": fetch_dramp,
+    "db_campr4": fetch_campr_sequences,
 }
 
 
@@ -515,9 +714,14 @@ def main() -> None:
         manifest = json.load(f)
 
     output_columns = load_output_columns(manifest)
-    max_records = int(manifest.get("max_records_per_source", 200))
+    global_cap_raw = manifest.get("max_records_per_source", 2500)
+    try:
+        global_cap_default = int(global_cap_raw)
+    except (TypeError, ValueError):
+        global_cap_default = 2500
+
     print(f"Web extraction v{manifest.get('web_extraction_version')}")
-    print(f"Max records per source: {max_records}")
+    print(f"Default max_records_per_source: {global_cap_default}")
     print(f"Output columns: {len(output_columns)}")
 
     all_rows: list[dict] = []
@@ -531,7 +735,10 @@ def main() -> None:
         method = "unknown_source"
         if fetcher:
             try:
-                rows, method = fetcher(page, max_records)
+                cap = effective_record_cap(page, global_cap_default)
+                cap_display = cap if cap is not None else "unlimited"
+                print(f"  Record cap for this source: {cap_display}")
+                rows, method = fetcher(page, cap)
             except Exception as exc:
                 print(f"  ERROR: {exc}")
                 method = "error"

@@ -9,6 +9,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from utils import NONBACTERIAL_PATHOGEN_SUBSTRINGS
+
 ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_FILES = [
@@ -24,6 +26,7 @@ REQUIRED_FILES = [
     "data/processed/dataset.csv",
     "scripts/build_dataset.py",
     "scripts/clean_dataset.py",
+    "scripts/utils.py",
 ]
 
 def load_json(path: Path) -> dict:
@@ -118,6 +121,33 @@ def check_measurement_value(df: pd.DataFrame) -> list[str]:
     return issues
 
 
+def check_suspected_nonbacterial_pathogens(df: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if "pathogen_name" not in df.columns:
+        return warnings
+    examples: list[str] = []
+    for idx, raw in df["pathogen_name"].items():
+        if pd.isna(raw):
+            continue
+        text = str(raw).lower().strip()
+        if not text:
+            continue
+        for hint in NONBACTERIAL_PATHOGEN_SUBSTRINGS:
+            h = hint.strip()
+            if h and h in text:
+                label = df.loc[idx, "record_id"] if "record_id" in df.columns else str(idx)
+                examples.append(f"{label}: pathogen_name contains '{h.strip()}'")
+                break
+    if examples:
+        cap = examples[:40]
+        more = len(examples) - len(cap)
+        msg = "; ".join(cap)
+        if more > 0:
+            msg += f" …(+{more} more)"
+        warnings.append(f"suspected non-bacterial targets in pathogen_name: {msg}")
+    return warnings
+
+
 def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
     """Return (errors, warnings)."""
     errors: list[str] = []
@@ -141,6 +171,8 @@ def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
     src_errors, src_warnings = check_source_id(df, source_map)
     errors.extend(src_errors)
     warnings.extend(src_warnings)
+
+    warnings.extend(check_suspected_nonbacterial_pathogens(df))
 
     return errors, warnings
 

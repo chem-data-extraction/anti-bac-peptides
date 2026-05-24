@@ -1,135 +1,192 @@
 {
-  "schema_version": "0.1.0",
-  "dataset_title": "Aptamer–protein binding dataset",
+  "schema_version": "0.3.0",
+  "dataset_title": "Antibacterial peptide MIC dataset",
   "fields": [
     {
       "name": "record_id",
       "type": "string",
       "required": true,
-      "description": "Stable unique identifier for one binding measurement record.",
-      "example": "rec_apt_thrombin_2018_pdf_001"
+      "description": "Stable unique identifier for one MIC measurement record.",
+      "example": "rec_ll37_ecoli_2019_pdf_001"
     },
     {
-      "name": "aptamer_sequence",
+      "name": "peptide_sequence",
       "type": "string",
       "required": true,
-      "description": "Nucleotide sequence of the aptamer (DNA or RNA), 5' to 3'.",
-      "example": "GGTTGGTGTGGTTGG",
-      "normalization_rule": "Uppercase; remove spaces and hyphens; keep only A,C,G,T,U."
+      "description": "Amino acid sequence of the antibacterial peptide in single-letter code.",
+      "example": "LLGDFFRKSKEKIGKEFKRIVQRIKDFLRNLVPRTES",
+      "normalization_rule": "Uppercase; remove spaces and hyphens; keep standard one-letter amino acid codes only."
     },
     {
-      "name": "target_name",
-      "type": "string",
-      "required": true,
-      "description": "Name of the protein or biomolecular target.",
-      "example": "Thrombin"
+      "name": "peptide_length",
+      "type": "integer",
+      "required": false,
+      "description": "Number of amino acid residues in the peptide sequence. Derived from peptide_sequence.",
+      "example": 37,
+      "normalization_rule": "Computed as len(peptide_sequence) after normalization. Used to filter outliers (typical range: 5–100 aa)."
     },
     {
-      "name": "target_type",
+      "name": "molecular_weight_da",
+      "type": "number",
+      "required": false,
+      "description": "Molecular weight of the peptide in Daltons. Required for converting MIC from µM to µg/mL.",
+      "example": 4493.3,
+      "normalization_rule": "Calculated from peptide_sequence using standard amino acid masses; adjust if modifications are present."
+    },
+    {
+      "name": "peptide_name",
       "type": "string",
       "required": false,
-      "description": "Broad classification of the target (e.g. enzyme, receptor, toxin).",
-      "example": "serine protease"
+      "description": "Common or reported name of the peptide, if available in the source.",
+      "example": "LL-37"
+    },
+    {
+      "name": "organism_source",
+      "type": "string",
+      "required": false,
+      "description": "Biological origin of the peptide: species (binomial) or 'synthetic' / 'unknown'.",
+      "example": "Homo sapiens",
+      "normalization_rule": "Use binomial species name for natural peptides; 'synthetic' for de-novo designed peptides."
+    },
+    {
+      "name": "synthesis_type",
+      "type": "string",
+      "required": false,
+      "description": "How the peptide was produced: ribosomal, nonribosomal, or synthetic.",
+      "example": "ribosomal",
+      "allowed_values": ["ribosomal", "nonribosomal", "synthetic", "unknown"]
+    },
+    {
+      "name": "peptide_modifications",
+      "type": "string",
+      "required": false,
+      "description": "Structured description of chemical or structural modifications: N-terminal, C-terminal, cyclization, D-amino acids, unusual residues, etc.",
+      "example": "C-terminal amidation; D-Lys at position 4"
+    },
+    {
+      "name": "pathogen_name",
+      "type": "string",
+      "required": true,
+      "description": "Scientific name of the bacterial pathogen (species or genus).",
+      "example": "Escherichia coli"
+    },
+    {
+      "name": "pathogen_strain",
+      "type": "string",
+      "required": false,
+      "description": "Strain or isolate identifier when reported in the source.",
+      "example": "ATCC 25922"
+    },
+    {
+      "name": "gram_stain",
+      "type": "string",
+      "required": false,
+      "description": "Gram classification of the pathogen when known or reported.",
+      "example": "Gram-negative",
+      "allowed_values": ["Gram-positive", "Gram-negative", "unknown"]
     },
     {
       "name": "measurement_type",
       "type": "string",
       "required": true,
-      "description": "Reported affinity or binding metric (Kd, Ki, IC50, etc.).",
-      "example": "Kd"
+      "description": "Type of antimicrobial activity measurement; fixed to MIC for this dataset.",
+      "example": "MIC"
     },
     {
       "name": "measurement_value",
       "type": "number",
       "required": false,
-      "description": "Numeric value as reported in the source.",
-      "example": 0.5
+      "description": "Numeric MIC value as reported in the source. Null if only a range or censored bound is given.",
+      "example": 8.0
     },
     {
-      "name": "measurement_unit",
-      "type": "string",
-      "required": false,
-      "description": "Unit of measurement_value (nM, μM, pM, etc.).",
-      "example": "nM",
-      "normalization_rule": "Map synonyms to nM, μM, pM, M; store original in notes if converted."
-    },
-    {
-      "name": "normalized_value_nm",
+      "name": "normalized_value_ug_ml",
       "type": "number",
       "required": false,
-      "description": "Binding affinity converted to nanomolar (nM) for comparison.",
-      "example": 0.5,
-      "normalization_rule": "Convert measurement_value using measurement_unit to nM."
+      "description": "MIC converted to µg/mL for cross-record comparison.",
+      "example": 36.5,
+      "normalization_rule": "Convert using original unit (from source text) and molecular_weight_da: µM × MW_Da / 1000 = µg/mL."
     },
     {
       "name": "assay_method",
       "type": "string",
       "required": false,
-      "description": "Experimental method used to obtain the measurement.",
-      "example": "surface plasmon resonance"
+      "description": "Experimental method used to determine MIC.",
+      "example": "broth microdilution",
+      "normalization_rule": "Prefer standard terms: broth microdilution, agar dilution, agar diffusion, E-test."
     },
     {
-      "name": "buffer",
+      "name": "medium",
       "type": "string",
       "required": false,
-      "description": "Buffer composition during the binding assay.",
-      "example": "PBS with 5 mM MgCl2"
+      "description": "Base growth medium name when reported (MHB, LB, CAMHB, PBS, etc.).",
+      "example": "MHB"
+    },
+    {
+      "name": "medium_composition",
+      "type": "string",
+      "required": false,
+      "description": "Concentrations of substances in the assay medium.",
+      "example": "150 mM NaCl; 2 mM CaCl2; pH 7.4",
+      "normalization_rule": "Semicolon-separated substance concentrations as reported; do not infer unstated components."
+    },
+    {
+      "name": "inoculum_cfu_ml",
+      "type": "string",
+      "required": false,
+      "description": "Bacterial inoculum density used in the assay (CFU/mL). Affects absolute MIC values.",
+      "example": "5e5",
+      "normalization_rule": "Store as reported string (e.g. '5×10^5', '1e6'). Standard CLSI inoculum is 5×10^5 CFU/mL."
     },
     {
       "name": "temperature_c",
       "type": "number",
       "required": false,
       "description": "Assay temperature in degrees Celsius.",
-      "example": 25
+      "example": 37
+    },
+    {
+      "name": "incubation_time_h",
+      "type": "number",
+      "required": false,
+      "description": "Incubation time in hours during the MIC assay.",
+      "example": 18
     },
     {
       "name": "source_id",
       "type": "string",
       "required": true,
       "description": "Identifier linking to an entry in specs/source_map.json.",
-      "example": "paper_green_2018"
+      "example": "paper_turner_1998"
     },
     {
       "name": "source_type",
       "type": "string",
       "required": false,
       "description": "Category of source (paper, database, web page, etc.).",
-      "example": "scientific_paper"
+      "example": "scientific_paper",
+      "allowed_values": ["scientific_paper", "database", "web_page", "unknown"]
+    },
+    {
+      "name": "publication_year",
+      "type": "integer",
+      "required": false,
+      "description": "Year of publication or database entry. Useful for tracking data recency.",
+      "example": 2021
     },
     {
       "name": "source_url",
       "type": "string",
       "required": false,
       "description": "URL or landing page for the source.",
-      "example": "https://doi.org/10.1021/example"
+      "example": "https://doi.org/10.1016/example.1998"
     },
     {
       "name": "doi",
       "type": "string",
       "required": false,
       "description": "Digital Object Identifier when available.",
-      "example": "10.1021/example"
-    },
-    {
-      "name": "extraction_method",
-      "type": "string",
-      "required": false,
-      "description": "How the record was obtained (pdf_manual, pdf_table, web_scrape, etc.).",
-      "example": "pdf_table"
-    },
-    {
-      "name": "extraction_confidence",
-      "type": "string",
-      "required": false,
-      "description": "Confidence in extracted values: high, medium, low, or unknown.",
-      "example": "high"
-    },
-    {
-      "name": "notes",
-      "type": "string",
-      "required": false,
-      "description": "Free-text notes, caveats, or provenance details.",
-      "example": "Value taken from Table 2; unit inferred from caption."
+      "example": "10.1016/example.1998"
     }
   ]
 }

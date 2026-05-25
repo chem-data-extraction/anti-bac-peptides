@@ -33,17 +33,17 @@ Collect experimentally reported **MIC** values (minimum inhibitory concentration
 
 Full field definitions are in `specs/dataset_schema.json`. Summary:
 
-**Peptide:** `record_id` (required), `peptide_sequence`, `peptide_name`, `organism_source`, `synthesis_type`
+**Peptide:** `record_id` (required), **`peptide_sequence` (required)**, `peptide_name`, `organism_source`
 
-**Pathogen:** `pathogen_name` (required), `pathogen_strain`, `gram_stain`
+**Pathogen:** `pathogen_name` (required), `pathogen_strain`
 
-**MIC:** `measurement_type` (required, always `MIC`), `measurement_value` (required), `measurement_unit`
+**MIC:** `measurement_value` (required; corpus is MIC-only), `measurement_unit`
 
-**Assay:** `assay_method`, `medium`, `medium_composition`, `inoculum_cfu_ml`, `temperature_c`, `incubation_time_h`
+**Assay:** `assay_method`, `medium`, `inoculum_cfu_ml`, `temperature_c`, `incubation_time_h`
 
 **Source:** `source_id` (required), `source_type`, `publication_year`, `source_url`, `doi`
 
-**Required fields (summary):** `record_id`, `pathogen_name`, `measurement_type`, `measurement_value`, `source_id`.
+**Required fields (summary):** `record_id`, `peptide_sequence`, `pathogen_name`, `measurement_value`, `source_id`.
 
 ## Ambiguous cases
 
@@ -51,4 +51,4 @@ Full field definitions are in `specs/dataset_schema.json`. Summary:
 - MIC as a range or censored value (`4-8`, `>128`) → keep original text in `measurement_value`.
 - Different units (µg/mL vs µM) → do not convert; store canonical unit in `measurement_unit`.
 - Same measurement in a paper and a database → two rows with different `source_id`; deduplicate in Practice 5.
-- No sequence in the source → leave `peptide_sequence` empty; use `peptide_name` if available.
+- No sequence in the source → row cannot appear in `dataset.csv`; either obtain sequence from supplementary references or omit the measurement.

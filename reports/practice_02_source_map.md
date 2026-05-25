@@ -12,14 +12,14 @@ Filters: open access, papers ~2020–2026, broth microdilution, common pathogens
 
 ## Source groups
 
-All sources are in `specs/source_map.json` (version 1.7.0).
+All sources are in `specs/source_map.json` (version 1.8.1).
 
 ### databases
 
 | source_id | Name | Access |
 |-----------|------|--------|
 | `db_dbaasp` | DBAASP v3 | REST API via `scripts/extract_web.py` |
-| `db_dramp` | DRAMP 4.0 | Local Excel `data/raw/web/dramp_general_dataset.xlsx` |
+| `db_dramp` | DRAMP 4.0 | Local Excel `data/raw/web/Antimicrobial.xlsx` |
 
 ### scientific_papers
 

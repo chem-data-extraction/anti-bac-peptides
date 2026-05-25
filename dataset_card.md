@@ -2,7 +2,7 @@
 
 ## Dataset title
 
-Antibacterial peptide MIC dataset (v0.5.0)
+Antibacterial peptide MIC dataset (v0.5.0, commit `bfdfee3`)
 
 ## Dataset summary
 
@@ -56,7 +56,7 @@ Defined in `specs/source_map.json` (v1.8.2):
 | source_id | Type | Records | License |
 |-----------|------|---------|---------|
 | `db_dramp` | Database | ~999 | CC-BY |
-| `db_dbaasp` | Database | ~90 | Free academic use |
+| `db_dbaasp` | Database | ~89 | Free academic use |
 | Other paper IDs | Papers | varies | CC-BY or publisher OA terms |
 
 See `specs/source_map.json` for the full inventory of 12 `source_id` values.

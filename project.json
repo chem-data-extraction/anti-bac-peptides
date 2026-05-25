@@ -15,7 +15,7 @@
   "final_dataset_path": "data/processed/dataset.csv",
   "schema_path": "specs/dataset_schema.json",
   "source_map_path": "specs/source_map.json",
-  "created_by": "",
+  "created_by": "Stepan Druzhininskii",
   "created_date": "2026-05-24",
   "version": "0.5.0"
 }

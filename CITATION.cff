@@ -4,10 +4,10 @@ message: "If you use this dataset, please cite it as below."
 type: dataset
 authors:
   - family-names: "Druzhininskii"
-    given-names: ""
+    given-names: "Stepan"
     affiliation: "Course: Extraction and preparation of chemical information"
-repository-code: "https://github.com/example/anti-bac-peptides"
-url: "https://github.com/example/anti-bac-peptides"
+repository-code: "https://github.com/chem-data-extraction/anti-bac-peptides"
+url: "https://github.com/chem-data-extraction/anti-bac-peptides"
 version: 0.5.0
 date-released: 2026-05-25
 abstract: >

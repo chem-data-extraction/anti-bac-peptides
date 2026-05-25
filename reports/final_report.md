@@ -1,6 +1,7 @@
 # Final report — Antibacterial peptide MIC dataset
 
 **Version:** 0.5.0  
+**Commit:** `bfdfee3`  
 **Date:** 2026-05-25  
 **Status:** Complete
 
@@ -27,12 +28,12 @@ This project built a structured, reproducible dataset of experimentally reported
 | Source group | Source ID | Type | Records |
 |-------------|-----------|------|---------|
 | Database | `db_dramp` | DRAMP bulk `Antimicrobial.xlsx` | 999 |
-| Database | `db_dbaasp` | DBAASP REST API | 90 |
+| Database | `db_dbaasp` | DBAASP REST API | 89 |
 | Paper | `paper_deepamp_nature_2024` | Nature Comm 2024 | 150 |
 | Paper | `paper_ai_amp_curr_microbiol_2025` | Curr Microbiol 2025 | 76 |
 | Paper | `paper_ramata_stunda_2023` | Antibiotics 2023 | 66 |
 | Paper | `paper_life_tn_peptides_2025` | Life 2025 | 45 |
-| Paper | `paper_melittin_processes_mdpi` | Processes 2024 | 34 |
+| Paper | `paper_melittin_processes_mdpi` | Processes 2026 | 34 |
 | Paper | `paper_sk_peptides_springer_2025` | Springer 2025 | 24 |
 | Paper | `paper_lee_2023` | Pharmaceutics 2023 | 16 |
 | Paper | `paper_zhang_2024` | Spectrum 2024 | 10 |

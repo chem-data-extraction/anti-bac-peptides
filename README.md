@@ -48,7 +48,7 @@ Defined in `specs/source_map.json` (version 1.8.2):
 | Source | Type | Records |
 |--------|------|---------|
 | DRAMP (`Antimicrobial.xlsx`; upstream `Antimicrobial_amps.xlsx`) | Database | ~999 |
-| DBAASP (REST API) | Database | ~90 |
+| DBAASP (REST API) | Database | ~89 |
 | Ramata-Stunda et al. 2023 | Paper | 66 |
 | deepAMP, Nature Comm 2024 | Paper | 150 |
 | AI-designed AMPs, Curr Microbiol 2025 | Paper | 76 |

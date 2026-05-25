@@ -40,6 +40,7 @@
         "notes": "verbatim MIC text; canonical units via scripts/utils.py only."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
+      "snapshot_note": "Pagination index only (page, totalCount, count per API list request); full peptide cards are fetched at extraction time and written to web_extracted_records.csv.",
       "extraction_status": "completed"
     },
     {
@@ -51,7 +52,7 @@
       "max_records": 1000,
       "local_workbook_path": "data/raw/web/Antimicrobial.xlsx",
       "sheet_name": 0,
-      "access_method": "Download `Antimicrobial_amps.xlsx` via https://dramp.cpu-bioinfor.org/downloads/download.php?filename=download_data%2FDRAMP3.0_new%2FAntimicrobial_amps.xlsx (bulk downloads → Antimicrobial section). Save unchanged copy as local_workbook_path `data/raw/web/Antimicrobial.xlsx`. Columns include DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID.",
+      "access_method": "Download `Antimicrobial_amps.xlsx` from DRAMP 4.0 bulk downloads (https://dramp.cpu-bioinfor.org/downloads/; legacy path segment `DRAMP3.0_new` in the direct URL). Save unchanged copy as local_workbook_path `data/raw/web/Antimicrobial.xlsx`. Columns include DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID.",
       "notes": "Substantial overlap with DBAASP/literature is expected — use source_id + sequence + pathogen when deduplicating.",
       "raw_snapshot_path": "data/raw/web/dramp_extraction_run_meta.json",
       "parser_plan": {

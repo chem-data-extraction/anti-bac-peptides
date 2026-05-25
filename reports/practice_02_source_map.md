@@ -68,7 +68,7 @@ All sources are open access. No registration or API keys.
 
 ## Expected conflicts and overlaps
 
-- **DBAASP vs DRAMP:** same MIC from the same paper may appear in both. Keep separate rows; 
+- **DBAASP vs DRAMP:** same MIC from the same paper may appear in both. Keep separate rows; deduplicate only when fingerprint fields are identical.
 - **Database vs paper:** a paper may already be in DBAASP/DRAMP. Keep both; paper rows often have better assay details.
 - **Units:** some sources use µM, others µg/mL. Store as reported — no automatic conversion.
 

@@ -8,6 +8,5 @@ This folder holds the **publication-ready** dataset: one row per record, columns
 
 ## Guidelines
 
-- Regenerate this file from scripts; avoid hand-editing except for small template fixes during setup.
-- Before submission, replace example rows with your project records.
-- Record the dataset version or commit hash in `reports/final_report.md` and `dataset_card.md`.
+- Regenerate this file from scripts; do not hand-edit.
+- Dataset version **0.5.0** (commit `bfdfee3`) is recorded in `reports/final_report.md` and `dataset_card.md`.

@@ -29,7 +29,7 @@ Both are open access and complement PDF extraction with large structured dataset
 **DBAASP** (`fetch_dbaasp` in `scripts/extract_web.py`):
 - Paginate JSON list; filter to monomer peptides with bacterial MIC entries.
 - Rate limit ≥ 1 s between requests.
-- Snapshot: `data/raw/web/dbaasp_antibacterial_search.json`
+- Snapshot: `data/raw/web/dbaasp_antibacterial_search.json` (pagination index only, not a full peptide dump)
 
 **DRAMP** (`fetch_dramp`):
 - Read workbook with `pandas.read_excel`.
@@ -61,6 +61,6 @@ MIC numbers stay verbatim (including `>200`); `measurement_value` must be non-em
 ## Output files
 
 - `data/extracted/web_extracted_records.csv`
-- `data/raw/web/dbaasp_antibacterial_search.json`
+- `data/raw/web/dbaasp_antibacterial_search.json` (API pagination index)
 - `data/raw/web/dramp_extraction_run_meta.json`
 - `data/extracted/extraction_log.jsonl` (web-related lines)

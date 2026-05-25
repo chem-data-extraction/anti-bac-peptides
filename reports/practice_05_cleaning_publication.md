@@ -57,7 +57,7 @@ Warnings: 7 rows with non-canonical unit `AU/μg` (DRAMP); suspicious pathogen n
 | Built | 2026-05-25 |
 | PDF sources | 10 (`paper_*` in source map) |
 | Web sources | 2 (`db_dbaasp`, `db_dramp`) |
-| Top contributors | DRAMP (~999), deepAMP paper (~150), DBAASP (~90) |
+| Top contributors | DRAMP (~999), deepAMP paper (~150), DBAASP (~89) |
 
 ## Publication readiness checklist
 

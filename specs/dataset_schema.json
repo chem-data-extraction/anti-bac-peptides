@@ -72,8 +72,8 @@
     {
       "name": "measurement_value",
       "type": "string",
-      "required": false,
-      "description": "MIC as reported in the source — plain number, censored bound (e.g. >128), range text, etc. Stored with minimal rewriting so symbols and wording stay visible.",
+      "required": true,
+      "description": "Required verbatim MIC as reported in the source — plain number, censored bound (e.g. >128), range text, etc. Stored with minimal rewriting so symbols and wording stay visible.",
       "example": ">8",
       "normalization_rule": "Prefer the exact source string (strip whitespace). Do not drop censored bounds or ranges for cleaning."
     },

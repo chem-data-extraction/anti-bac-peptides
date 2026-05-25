@@ -28,7 +28,7 @@
           "tool": "scripts/extract_web.py → fetch_dbaasp",
           "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (see scripts/utils.py)."
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores required verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (see scripts/utils.py)."
       },
       {
         "source_id": "db_dramp",
@@ -132,28 +132,6 @@
         "notes": "Primary focus: insect and classical cecropin MICs versus standard and colistin-resistant pathogens. Parsed MIC in **µM** as reported. Assay defaults in manifest: broth microdilution, MHB-style conditions per article."
       },
       {
-        "source_id": "paper_hu_fmicb_2022_alpha_helix",
-        "name": "Hu et al. — α-helical AMP benchmark with broad MIC panels (Frontiers in Microbiology, 2022)",
-        "source_type": "scientific_paper",
-        "url": "https://doi.org/10.3389/fmicb.2022.870361",
-        "doi": "10.3389/fmicb.2022.870361",
-        "access_status": "open_access",
-        "access_method": "Open-access Frontiers PDF (`data/raw/pdf/fmicb-13-870361.pdf`; see `pdf_extraction_manifest.json`)",
-        "access_date": "2026-05-24",
-        "license": "CC BY Frontiers publisher terms — verify on landing page.",
-        "expected_data_volume": "high",
-        "estimated_records": 600,
-        "available_data_types": ["tables"],
-        "expected_fields": ["peptide_sequence", "pathogen_name", "measurement_value"],
-        "extraction_strategy": {
-          "recommended_method": "pdf_table_extraction",
-          "tool": "scripts/extract_pdf.py → parse_hu_fmicb_text (pdfplumber)",
-          "pages": [8],
-          "notes": "TABLE 1 (manifest `pages_used: [8]`): peptide codes S1–S60 MIC matrix in µg/mL vs CMCC reference strains; caption maps columns to pathogens. Final row counts depend on parsing success and optional `max_records_per_source` cap in the PDF manifest."
-        },
-        "notes": "Bench-style high-density MIC grid; overlaps literature/DB rows for classic AMPs expected. Wired in-repo with PMC/Frontiers-style PDF under `pdf_path` in `specs/pdf_extraction_manifest.json`."
-      },
-      {
         "source_id": "paper_melittin_processes_mdpi",
         "name": "Melittin-derived AMP analogues — MDPI Processes (2026)",
         "source_type": "scientific_paper",
@@ -174,6 +152,138 @@
           "notes": "Manifest `pages_used: [10, 12, 13]`: peptide sequences plus MIC/MBC-style tables for melittin, TT-1, FKW, WKW vs Gram-positive/Gram-negative panels; values in µg/mL in CAMHB (+ DMSO per Methods)."
         },
         "notes": "Adds melittin-scaffold analogue coverage complementary to rational-design screens. Parser and PDF path pinned in-repo (`specs/pdf_extraction_manifest.json`)."
+      },
+      {
+        "source_id": "paper_deepamp_nature_2024",
+        "name": "Li et al. 2024 — deepAMP Foundation Model for Broad-Spectrum AMPs (Nature Communications)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.1038/s41467-024-51933-2",
+        "doi": "10.1038/s41467-024-51933-2",
+        "access_status": "open_access",
+        "access_method": "Open-access Nature Comm PDF (`data/raw/pdf/s41467-024-51933-2.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY-NC-ND 4.0",
+        "expected_data_volume": "high",
+        "estimated_records": 145,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_deepamp_text (pdfplumber)",
+          "pages": [6],
+          "notes": "Table 1 (p.6): 29 penetratin-optimized peptides MIC in µg/mL vs E.coli, S.aureus, K.pneumoniae, P.aeruginosa, MRSA. All peptide sequences present in same table."
+        },
+        "notes": "AI-designed peptides via deepAMP generative framework. All have confirmed sequences and MIC values from in vitro assays."
+      },
+      {
+        "source_id": "paper_ai_amp_curr_microbiol_2025",
+        "name": "Mesa et al. 2025 — AI-designed AMPs via Deep Learning and Rational Modifications (Current Microbiology)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.1007/s00284-025-04346-3",
+        "doi": "10.1007/s00284-025-04346-3",
+        "access_status": "open_access",
+        "access_method": "Open-access Springer PDF (`data/raw/pdf/s00284-025-04346-3.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "medium",
+        "estimated_records": 48,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_ai_amp_text (pdfplumber)",
+          "pages": [5, 6],
+          "notes": "Table 2 (p.6): 12 synthetic peptides (OrP1, OrP1M, OrP3, OrP3M, OrP4, OrP4M, OrP9, OrP9M, VeP1, VeP1M, VeP2, VeP2M) MIC in µM vs E.coli, K.quasipneumoniae, S.aureus, P.aeruginosa; skip C.albicans column."
+        },
+        "notes": "AI-generated peptides from PepGen 1.0 and AmPepGen with rational modifications."
+      },
+      {
+        "source_id": "paper_life_tn_peptides_2025",
+        "name": "Kocagoz et al. 2025 — Protease-Resistant D-TN Peptides with Broad-Spectrum Activity (Life)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/life15020242",
+        "doi": "10.3390/life15020242",
+        "access_status": "open_access",
+        "access_method": "Open-access MDPI PDF (`data/raw/pdf/life-15-00242.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "medium",
+        "estimated_records": 40,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_life_tn_text (pdfplumber)",
+          "pages": [4],
+          "notes": "Table 1 (p.4): 17 TN/D-TN peptides MIC in µg/mL vs S.aureus ATCC29213, E.coli ATCC25922, P.aeruginosa ATCC27853; skip C.albicans column (fungal)."
+        },
+        "notes": "Cathelicidin-mimicking synthetic peptides with D-amino acid substitutions for protease resistance."
+      },
+      {
+        "source_id": "paper_sk_peptides_springer_2025",
+        "name": "Kakkerla et al. 2025 — SK Peptides with Antimicrobial and Immunomodulatory Potential (Discover Medicine)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.1007/s44337-025-00335-4",
+        "doi": "10.1007/s44337-025-00335-4",
+        "access_status": "open_access",
+        "access_method": "Open-access Springer PDF (`data/raw/pdf/s44337-025-00335-4.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY-NC-ND 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 24,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_sk_peptides_text (pdfplumber)",
+          "pages": [3, 8],
+          "notes": "Table 1 (p.3): sequences for SK1203, SK1217, SK1260, SK1281, SK1283, SK1286. Table 4 (p.8): MIC in µg/mL vs E.coli ATCC8739, S.aureus ATCC6538, K.pneumoniae ATCC700603, P.aeruginosa ATCC9027."
+        },
+        "notes": "Cationic AMPs designed based on natural AMP features (charge, amphipathicity, alpha-helix). SK1260 showed strongest activity."
+      },
+      {
+        "source_id": "paper_b7_proline_rich_2025",
+        "name": "Cappella et al. 2025 — B7-005 Variants (B7-006, B7-007) vs Clinical P.aeruginosa and S.aureus (Antibiotics)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/antibiotics15040412",
+        "doi": "10.3390/antibiotics15040412",
+        "access_status": "open_access",
+        "access_method": "Open-access MDPI Antibiotics PDF (`data/raw/pdf/antibiotics-15-00412.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 9,
+        "available_data_types": ["tables"],
+        "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_b7_proline_text (pdfplumber)",
+          "pages": [3],
+          "notes": "Table 2 (p.3): B7-005/B7-006/B7-007 MIC in µM vs E.coli ATCC25922, P.aeruginosa PAO1 (ATCC15692), P.aeruginosa ATCC27823. Sequences from Table 1 (same page)."
+        },
+        "notes": "Synthetic proline-rich AMPs derived from Bac7 scaffold. B7-006 and B7-007 are shorter variants of B7-005."
+      },
+      {
+        "source_id": "paper_c14r_eskape_2026",
+        "name": "Gruber et al. 2026 — C14R Pore-Forming AMP Against All ESKAPE Pathogens (Antibiotics)",
+        "source_type": "scientific_paper",
+        "url": "https://doi.org/10.3390/antibiotics15020211",
+        "doi": "10.3390/antibiotics15020211",
+        "access_status": "open_access",
+        "access_method": "Open-access MDPI Antibiotics PDF (`data/raw/pdf/antibiotics-15-00211.pdf`)",
+        "access_date": "2026-05-24",
+        "license": "CC BY 4.0",
+        "expected_data_volume": "low",
+        "estimated_records": 6,
+        "available_data_types": ["tables", "text"],
+        "expected_fields": ["peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "extraction_strategy": {
+          "recommended_method": "pdf_table_extraction",
+          "tool": "scripts/extract_pdf.py → parse_c14r_text (pdfplumber)",
+          "pages": [4],
+          "notes": "Table 1 (p.4): C14R MIC in µg/mL vs E.faecium VRE, S.aureus MRSA, K.quasipneumoniae ESBL, A.baumannii, P.aeruginosa, E.coli ESBL. MIC determined by resazurin-based Gompertz-fit analysis."
+        },
+        "notes": "Designed pore-forming AMP C14R (Ulm University). Sequence not published in this paper; see Mildenberger et al. 2024 (Pharmaceuticals 17:83)."
       }
     ]
   }

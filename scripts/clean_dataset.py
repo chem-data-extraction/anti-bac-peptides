@@ -16,10 +16,6 @@ DATASET_PATH = ROOT / "data/processed/dataset.csv"
 
 MISSING_TOKENS = {"", "na", "n/a", "none", "null", "-", "nan"}
 STANDARD_AA = set("ACDEFGHIKLMNPQRSTVWYX")
-SYNTHESIS_TYPE_MAP = {
-    "non-ribosomal": "nonribosomal",
-    "non ribosomal": "nonribosomal",
-}
 
 
 def normalize_sequence(seq: object) -> str:
@@ -58,33 +54,6 @@ def normalize_verbatim_mic(value: object) -> str | None:
     text = str(value).strip()
     if not text or text.lower() in MISSING_TOKENS:
         return None
-    return text
-
-
-def normalize_synthesis_type(value: object) -> str | None:
-    if pd.isna(value):
-        return None
-    text = str(value).strip()
-    if not text:
-        return None
-    mapped = SYNTHESIS_TYPE_MAP.get(text.lower(), text.lower())
-    allowed = {"ribosomal", "nonribosomal", "synthetic", "unknown"}
-    return mapped if mapped in allowed else text
-
-
-def normalize_gram_stain(value: object) -> str | None:
-    if pd.isna(value):
-        return None
-    text = str(value).strip()
-    if not text:
-        return None
-    lowered = text.lower()
-    if lowered in ("gram-positive", "gram positive", "gram+"):
-        return "Gram-positive"
-    if lowered in ("gram-negative", "gram negative", "gram-"):
-        return "Gram-negative"
-    if lowered == "unknown":
-        return "unknown"
     return text
 
 
@@ -138,12 +107,11 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     if "peptide_sequence" in out.columns:
         out["peptide_sequence"] = out["peptide_sequence"].map(normalize_sequence)
-
-    if "synthesis_type" in out.columns:
-        out["synthesis_type"] = out["synthesis_type"].map(normalize_synthesis_type)
-
-    if "gram_stain" in out.columns:
-        out["gram_stain"] = out["gram_stain"].map(normalize_gram_stain)
+        seq_empty = out["peptide_sequence"].isna() | (out["peptide_sequence"] == "")
+        if seq_empty.any():
+            dropped_n = int(seq_empty.sum())
+            out = out.loc[~seq_empty].copy()
+            print(f"Dropped {dropped_n} row(s) with empty peptide_sequence after normalization.")
 
     for col in ("temperature_c", "incubation_time_h"):
         if col in out.columns:
@@ -171,14 +139,9 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             "temperature_c",
             "incubation_time_h",
             "publication_year",
-            "synthesis_type",
-            "gram_stain",
         ):
             continue
         out[col] = out[col].map(normalize_missing_values)
-
-    if "measurement_type" in out.columns:
-        out["measurement_type"] = out["measurement_type"].fillna("MIC").replace("", "MIC")
 
     schema_cols = load_schema_columns()
     content_cols = [c for c in schema_cols if c != "record_id" and c in out.columns]
@@ -220,6 +183,8 @@ def main() -> None:
             df[col] = None
     df = df[columns]
     cleaned = clean_dataframe(df)
+    if "publication_year" in cleaned.columns:
+        cleaned["publication_year"] = cleaned["publication_year"].astype(pd.Int64Dtype())
     DATASET_PATH.parent.mkdir(parents=True, exist_ok=True)
     cleaned.to_csv(DATASET_PATH, index=False)
     print(f"Wrote {len(cleaned)} cleaned rows to {DATASET_PATH.relative_to(ROOT)}")

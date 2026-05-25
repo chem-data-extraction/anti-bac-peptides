@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -74,7 +75,7 @@ def check_json_parseable(root: Path = ROOT) -> list[str]:
 
 def load_dataset(root: Path = ROOT) -> pd.DataFrame:
     path = root / "data/processed/dataset.csv"
-    return pd.read_csv(path)
+    return pd.read_csv(path, dtype={"inoculum_cfu_ml": "string"})
 
 
 def check_dataset_columns(df: pd.DataFrame, schema: dict) -> list[str]:
@@ -113,16 +114,82 @@ def check_source_id(df: pd.DataFrame, source_map: dict) -> tuple[list[str], list
 
 
 def check_measurement_value(df: pd.DataFrame) -> list[str]:
-    """measurement_value is verbatim MIC text (digits, censored bounds, ranges); numeric-only not required."""
+    """measurement_value is required verbatim MIC text (digits, censored bounds, ranges)."""
     issues = []
     col = df["measurement_value"]
+    empty = col.isna() | (col.astype(str).str.strip() == "") | (col.astype(str).str.lower() == "nan")
+    if empty.any():
+        issues.append(f"measurement_value contains null or empty values ({int(empty.sum())} rows)")
     for idx, val in col.items():
-        if pd.isna(val) or val == "":
+        if empty.loc[idx]:
             continue
         if isinstance(val, (bool, int, float, str)):
             continue
         issues.append(f"measurement_value has unsupported type at row {idx}: {type(val).__name__}")
     return issues
+
+
+CANONICAL_MEASUREMENT_UNITS: frozenset[str] = frozenset(
+    {"ug/mL", "mg/L", "uM", "nM", "ng/mL", "pmol/ml"}
+)
+
+
+def check_peptide_sequence(df: pd.DataFrame) -> list[str]:
+    issues: list[str] = []
+    if "peptide_sequence" not in df.columns:
+        issues.append("peptide_sequence column is missing")
+        return issues
+    col = df["peptide_sequence"]
+    empty = col.isna() | (col.astype(str).str.strip() == "") | (col.astype(str).str.lower() == "nan")
+    if empty.any():
+        issues.append(
+            f"peptide_sequence contains null or empty values ({int(empty.sum())} rows)"
+        )
+    return issues
+
+
+SUSPICIOUS_PATHOGEN_RE = re.compile(
+    r"^(\d|##|L\d+\s|L-\d+\s)", re.IGNORECASE
+)
+
+
+def check_measurement_unit_enum(df: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if "measurement_unit" not in df.columns:
+        return warnings
+    non_canon = (
+        df["measurement_unit"]
+        .dropna()
+        .loc[lambda s: ~s.isin(CANONICAL_MEASUREMENT_UNITS)]
+    )
+    if not non_canon.empty:
+        counts = non_canon.value_counts().to_dict()
+        warnings.append(
+            f"Non-canonical measurement_unit values ({len(non_canon)} rows): {counts}"
+        )
+    return warnings
+
+
+def check_suspicious_pathogen_names(df: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if "pathogen_name" not in df.columns:
+        return warnings
+    examples: list[str] = []
+    for idx, val in df["pathogen_name"].items():
+        if pd.isna(val) or not str(val).strip():
+            continue
+        text = str(val).strip()
+        if SUSPICIOUS_PATHOGEN_RE.search(text) or "##" in text:
+            label = df.loc[idx, "record_id"] if "record_id" in df.columns else str(idx)
+            examples.append(f"{label}: '{text}'")
+    if examples:
+        cap = examples[:20]
+        more = len(examples) - len(cap)
+        msg = "; ".join(cap)
+        if more > 0:
+            msg += f" …(+{more} more)"
+        warnings.append(f"Suspicious pathogen_name patterns (digit/##/lab-code prefix): {msg}")
+    return warnings
 
 
 def check_suspected_nonbacterial_pathogens(df: pd.DataFrame) -> list[str]:
@@ -170,6 +237,7 @@ def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
 
     errors.extend(check_dataset_columns(df, schema))
     errors.extend(check_record_id(df))
+    errors.extend(check_peptide_sequence(df))
     errors.extend(check_measurement_value(df))
 
     src_errors, src_warnings = check_source_id(df, source_map)
@@ -177,6 +245,8 @@ def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
     warnings.extend(src_warnings)
 
     warnings.extend(check_suspected_nonbacterial_pathogens(df))
+    warnings.extend(check_measurement_unit_enum(df))
+    warnings.extend(check_suspicious_pathogen_names(df))
 
     return errors, warnings
 

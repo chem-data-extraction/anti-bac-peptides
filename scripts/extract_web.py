@@ -120,41 +120,42 @@ def _try_import(name: str) -> Any | None:
 
 
 def split_pathogen_strain(species_reported: str) -> tuple[str, str]:
-    """Split species phrase and trailing catalogue designation (e.g. ATCC …)."""
+    """Split species phrase and trailing catalogue designation (e.g. ATCC …).
+
+    Also handles DRAMP-specific patterns:
+    - Codes like L\\d+ and L-\\d+ (e.g. ``L287``, ``L-8``)
+    - Resistance phenotype tags (e.g. ``MRSA``, ``VRE``, ``ESBL``)
+    - Gram-stain markers embedded in text (e.g. ``##Gram-positive``)
+    """
     s = species_reported.strip()
     if not s:
         return "", ""
+
+    # Strip DRAMP-style Gram-stain markers (##Gram-positive / ##Gram-negative)
+    s = re.sub(r"##\s*Gram[- ](positive|negative)\b", "", s, flags=re.IGNORECASE).strip()
+
+    # Split on known catalogue prefixes
     m = re.search(
-        r"^(.*?)\s+((?:ATCC|DSMZ|CCUG|NCTC)\s*(?:#\s*)?[\w./\-]+)\s*$",
+        r"^(.*?)\s+((?:ATCC|DSMZ|CCUG|NCTC|MRSA|VRE|ESBL|MDR|CRKP|CRE|KPC)\s*(?:#\s*)?[\w./\-]+)\s*$",
         s,
         re.IGNORECASE,
     )
     if m:
         base, strain = m.group(1).strip(), m.group(2).strip()
         return (base, strain) if base else (strain, "")
+
+    # DRAMP laboratory code pattern: word ending with L\d+ or L-\d+ (e.g. ``Escherichia coli L287``)
+    m2 = re.search(
+        r"^(.*?)\s+(L-?\d+(?:\s*\w+)*)\s*$",
+        s,
+        re.IGNORECASE,
+    )
+    if m2:
+        base2, strain2 = m2.group(1).strip(), m2.group(2).strip()
+        if base2:
+            return base2, strain2
+
     return s, ""
-
-
-def compose_medium_composition(act: dict, medium_obj: dict) -> str:
-    """Medium details exposed by DBAASP (description, pH, salts, curator note)."""
-    parts: list[str] = []
-    if isinstance(medium_obj, dict):
-        desc = str(medium_obj.get("description") or "").strip()
-        if desc:
-            parts.append(desc)
-    ph = str(act.get("ph") or "").strip()
-    if ph:
-        parts.append(f"pH {ph}")
-    ion = str(act.get("ionicStrength") or "").strip()
-    if ion:
-        parts.append(f"ionic strength {ion}")
-    salt = str(act.get("saltType") or "").strip()
-    if salt:
-        parts.append(salt)
-    note = str(act.get("note") or "").strip()
-    if note:
-        parts.append(note)
-    return "; ".join(parts)
 
 
 def format_inoculum_cfu(act: dict) -> str:
@@ -172,13 +173,6 @@ def format_inoculum_cfu(act: dict) -> str:
 def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: int) -> list[dict]:
     seq = normalize_sequence(card.get("sequence", ""))
     name = card.get("name") or card.get("majorName") or card.get("dbaaspId") or ""
-
-    synthesis = ""
-    st = card.get("synthesisType")
-    if isinstance(st, dict):
-        synthesis = st.get("name", "")
-    elif st:
-        synthesis = str(st)
 
     organism = ""
     genes = card.get("sourceGenes") or []
@@ -214,8 +208,6 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
         medium_obj = act.get("medium") or {}
         medium = medium_obj.get("name", "") if isinstance(medium_obj, dict) else ""
 
-        medi_compose = compose_medium_composition(act, medium_obj)
-
         slug_path = (
             slugify(pathogen_name.split()[0])[:6] if pathogen_name else "unk"
         )
@@ -230,16 +222,12 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
             "peptide_sequence": seq,
             "peptide_name": name,
             "organism_source": organism,
-            "synthesis_type": synthesis.lower() if synthesis else "",
             "pathogen_name": pathogen_name,
             "pathogen_strain": strain,
-            "gram_stain": "",
-            "measurement_type": "MIC",
             "measurement_value": mv,
             "measurement_unit": meas_unit_out,
             "assay_method": "",
             "medium": medium,
-            "medium_composition": medi_compose,
             "inoculum_cfu_ml": format_inoculum_cfu(act),
             "temperature_c": "",
             "incubation_time_h": "",
@@ -267,6 +255,7 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     headers = {"Accept": "application/json", "User-Agent": "AMP-MIC-Dataset/1.0 (academic)"}
 
     rows: list[dict] = []
+    seen_pids: set = set()
     snapshot_pages: list[dict] = []
     page_num = 0
     page_size = 50
@@ -315,6 +304,9 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
                 continue
             if not pid:
                 continue
+            if pid in seen_pids:
+                continue
+            seen_pids.add(pid)
 
             time.sleep(RATE_LIMIT_S)
             try:
@@ -349,7 +341,7 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     return rows, "web_api"
 
 
-# --- DRAMP: local workbook (bulk general_amps sheet); Target_Organism free text with `(MIC …)` ---
+# --- DRAMP: local workbook (Antimicrobial.xlsx preferred; Target_Organism free text with `(MIC …)` ) ---
 MIC_IN_PARENS = re.compile(r"\(\s*MIC\b\s*([^)]+)\)", re.IGNORECASE)
 
 def _split_mic_numeric_and_unit(fragment: str) -> tuple[str, str]:
@@ -395,15 +387,31 @@ def _dramp_mic_inner_to_value_unit(inner_raw: str) -> tuple[str, str]:
 
 
 def organism_before_mic_paren(text_full: str, mic_open_idx: int) -> str:
-    """Best-effort pathogen substring before `(MIC …)` from a comma-/semicolon-heavy field."""
+    """Best-effort pathogen substring before ``(MIC …)`` from a comma-/semicolon-heavy field.
+
+    DRAMP-specific cleaning applied to candidate fragment:
+    - Strips laboratory code prefixes that are not organism names (e.g. ``L287``, ``L-8``).
+    - Strips ``##Gram-positive`` / ``##Gram-negative`` markers embedded in the text.
+    """
     pre = text_full[:mic_open_idx].rstrip(",; ")
+    cand = ""
     for sep in (",", ";", ":"):
         j = pre.rfind(sep)
         if j != -1:
-            cand = pre[j + 1 :].strip(",; ")
-            if cand:
-                return cand
-    return pre.strip(",; ") if pre else ""
+            fragment = pre[j + 1 :].strip(",; ")
+            if fragment:
+                cand = fragment
+                break
+    if not cand:
+        cand = pre.strip(",; ")
+
+    # Strip DRAMP Gram-stain markers
+    cand = re.sub(r"##\s*Gram[- ](positive|negative)\b", "", cand, flags=re.IGNORECASE).strip(",; ")
+
+    # Strip leading standalone lab codes like "L287 " or "L-8 " that appear before the organism name
+    cand = re.sub(r"^\bL-?\d+\b\s*", "", cand, flags=re.IGNORECASE).strip(",; ")
+
+    return cand
 
 
 def iter_dramp_target_mic_rows(target_text: str) -> list[tuple[str, str, str]]:
@@ -431,7 +439,7 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     if pd_local is None:
         print("  [DRAMP] pandas not installed — skipping.")
         return [], "missing_dependency"
-    raw_rel = page.get("local_workbook_path") or "data/raw/web/dramp_general_dataset.xlsx"
+    raw_rel = page.get("local_workbook_path") or "data/raw/web/Antimicrobial.xlsx"
     path = ROOT / raw_rel
     if not path.is_file():
         print(f"  [DRAMP] Missing workbook {path.relative_to(ROOT)} — skipping.")
@@ -487,16 +495,12 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
                     "peptide_sequence": seq,
                     "peptide_name": peptide_name,
                     "organism_source": organism_source,
-                    "synthesis_type": "",
                     "pathogen_name": pathogen_name,
                     "pathogen_strain": strain,
-                    "gram_stain": "",
-                    "measurement_type": "MIC",
                     "measurement_value": mv,
                     "measurement_unit": canon_u if canon_u else (unit_raw_hint or ""),
                     "assay_method": "",
                     "medium": "",
-                    "medium_composition": "",
                     "inoculum_cfu_ml": "",
                     "temperature_c": "",
                     "incubation_time_h": "",

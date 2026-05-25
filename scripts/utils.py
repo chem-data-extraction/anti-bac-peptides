@@ -33,16 +33,14 @@ def canonical_measurement_unit(unit_raw: Any) -> str:
         return "ng/mL"
     if c.endswith("nm"):
         return "nM"
-    if c.endswith("pmol/ml"):
+    if c.endswith("pmol/ml") or "pmol/ml" in c:
         return "pmol/ml"
-    if c.endswith("mg/l"):
+    if c.endswith("mg/l") or c.endswith("mg/ml"):
         return "mg/L"
-    if c in ("ug/ml",) or (c.endswith("ug/ml")):
+    if c in ("ug/ml",) or c.endswith("ug/ml"):
         return "ug/mL"
-    if c == "um":
+    if c in ("um", "umol/l", "umol/ml"):
         return "uM"
-    if "pmol/ml" in c:
-        return "pmol/ml"
     stripped = "" if unit_raw is None else str(unit_raw).strip()
     return stripped
 

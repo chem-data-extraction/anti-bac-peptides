@@ -39,14 +39,11 @@ def build() -> pd.DataFrame:
 
 def main() -> None:
     MERGED_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DATASET_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     df = build()
     df.to_csv(MERGED_PATH, index=False)
-    df.to_csv(DATASET_PATH, index=False)
 
     print(f"Wrote {len(df)} rows to {MERGED_PATH.relative_to(ROOT)}")
-    print(f"Wrote {len(df)} rows to {DATASET_PATH.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

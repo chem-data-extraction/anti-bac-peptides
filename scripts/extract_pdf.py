@@ -99,13 +99,17 @@ MANIFEST = ROOT / "specs/pdf_extraction_manifest.json"
 OUTPUT_CSV = ROOT / "data/extracted/pdf_extracted_records.csv"
 LOG_PATH = ROOT / "data/extracted/extraction_log.jsonl"
 
+# ---------------------------------------------------------------------------
+# Pathogen lookup tables shared by multiple parsers
+# ---------------------------------------------------------------------------
+
 RAMATA_STUNDA_PATHOGENS = [
-    ("Escherichia coli", "ATCC 25922", "Gram-negative"),
-    ("Pseudomonas aeruginosa", "ATCC 27853", "Gram-negative"),
-    ("Klebsiella pneumoniae", "ATCC 700603", "Gram-negative"),
-    ("Enterococcus faecium", "ATCC 19434", "Gram-positive"),
-    ("Staphylococcus aureus", "ATCC 25923", "Gram-positive"),
-    ("Cutibacterium acnes", "ATCC 6919", "Gram-positive"),
+    ("Escherichia coli", "ATCC 25922"),
+    ("Pseudomonas aeruginosa", "ATCC 27853"),
+    ("Klebsiella pneumoniae", "ATCC 700603"),
+    ("Enterococcus faecium", "ATCC 19434"),
+    ("Staphylococcus aureus", "ATCC 25923"),
+    ("Cutibacterium acnes", "ATCC 6919"),
 ]
 
 LEE_PEPTIDES = [
@@ -124,131 +128,17 @@ LEE_PEPTIDES = [
 ]
 
 LEE_STRAIN_MAP = {
-    "e. coli": ("Escherichia coli", "ATCC 25922", "Gram-negative"),
-    "a. baumannii": ("Acinetobacter baumannii", "ATCC 19606", "Gram-negative"),
-    "p. aeruginosa": ("Pseudomonas aeruginosa", "ATCC 27853", "Gram-negative"),
-    "k. pneumoniae": ("Klebsiella pneumoniae", "ATCC 13883", "Gram-negative"),
-    "colrec 1557": ("Escherichia coli", "ColREC 1557", "Gram-negative"),
-    "colrec 12": ("Escherichia coli", "ColREC 12", "Gram-negative"),
-    "colrab 1915": ("Acinetobacter baumannii", "ColRAB 1915", "Gram-negative"),
-    "colrkp 139": ("Klebsiella pneumoniae", "ColRKP 139", "Gram-negative"),
+    "e. coli": ("Escherichia coli", "ATCC 25922"),
+    "a. baumannii": ("Acinetobacter baumannii", "ATCC 19606"),
+    "p. aeruginosa": ("Pseudomonas aeruginosa", "ATCC 27853"),
+    "k. pneumoniae": ("Klebsiella pneumoniae", "ATCC 13883"),
+    "colrec 1557": ("Escherichia coli", "ColREC 1557"),
+    "colrec 12": ("Escherichia coli", "ColREC 12"),
+    "colrab 1915": ("Acinetobacter baumannii", "ColRAB 1915"),
+    "colrkp 139": ("Klebsiella pneumoniae", "ColRKP 139"),
 }
-
-HU_FMICB_PATHOGENS_COLS: list[tuple[str, str, str]] = [
-    ("Staphylococcus aureus", "CMCC26003", "Gram-positive"),
-    ("Staphylococcus aureus", "MRSA186", "Gram-positive"),
-    ("Enterococcus faecium", "VRE204", "Gram-positive"),
-    ("Pseudomonas aeruginosa", "CMCC10104", "Gram-negative"),
-    ("Escherichia coli", "CMCC44103", "Gram-negative"),
-    ("Klebsiella pneumoniae", "CMCC46117", "Gram-negative"),
-    ("Escherichia coli", "SYPB-3820", "Gram-negative"),
-    ("Acinetobacter baumannii", "ACCC11038", "Gram-negative"),
-    ("Shigella dysenteriae", "CMCC(B)51105", "Gram-negative"),
-    ("Salmonella enterica", "CMCC50094 Paratyphi B", "Gram-negative"),
-]
 
 PROCESSES_PEPTIDE_NAMES = ("Melittin", "TT-1", "FKW", "WKW")
-
-PROCESSES_GRAM: dict[str, str] = {
-    "Staphylococcus epidermidis": "Gram-positive",
-    "Staphylococcus aureus": "Gram-positive",
-    "Enterococcus faecalis": "Gram-positive",
-    "Enterococcus faecium": "Gram-positive",
-    "Klebsiella pneumoniae": "Gram-negative",
-    "Escherichia coli": "Gram-negative",
-    "Acinetobacter baumannii": "Gram-negative",
-    "Pseudomonas aeruginosa": "Gram-negative",
-}
-
-
-def _take_mic_token_hu(parts: list[str], idx: int) -> tuple[str | None, int]:
-    if idx >= len(parts):
-        return None, idx
-    t = parts[idx]
-    if t in ("-", "–", "—"):
-        return "-", idx + 1
-    if len(t) > 1 and (t[0] in "><"):
-        return t, idx + 1
-    if t == ">" and idx + 1 < len(parts):
-        return ">" + parts[idx + 1], idx + 2
-    return t, idx + 1
-
-
-def _parse_hu_table_line(words: list[str]) -> list[tuple[str, str, list[str]]]:
-    """One line may contain two peptides: Name MD MIC×10 [...]."""
-    out: list[tuple[str, str, list[str]]] = []
-    i = 0
-    while i < len(words):
-        m_name = re.match(r"^S\d+$", words[i])
-        if not m_name:
-            i += 1
-            continue
-        name = words[i]
-        if i + 1 >= len(words):
-            break
-        if not re.fullmatch(r"[\d.]+", words[i + 1]):
-            break
-        md = words[i + 1]
-        i += 2
-        mics: list[str] = []
-        bad = False
-        for _ in range(10):
-            tok, ni = _take_mic_token_hu(words, i)
-            if tok is None:
-                bad = True
-                break
-            mics.append(tok)
-            i = ni
-        if bad or len(mics) != 10:
-            break
-        out.append((name, md, [m if m != "-" else "-" for m in mics]))
-    return out
-
-
-def parse_hu_fmicb_text(page_texts: dict[int, str], source: dict) -> list[dict]:
-    """Liu et al. 2022 Frontiers Microbiology — TABLE 1 S1–S60 MIC grid (µg/mL); source_id `paper_hu_fmicb_2022_alpha_helix`."""
-    source_id = source["source_id"]
-    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
-
-    rows: list[dict] = []
-    for raw_line in text_all.splitlines():
-        line_st = raw_line.strip()
-        if not line_st or line_st.startswith("Name MD"):
-            continue
-        words = line_st.split()
-        if not words or not re.match(r"^S\d+$", words[0]):
-            continue
-        if words[0] == "S1" and "highest" in line_st.lower() and "MD" not in line_st:
-            continue
-        for pep_name, _md_idx, mic_list in _parse_hu_table_line(words):
-            for idx_1, raw_mic in enumerate(mic_list):
-                if idx_1 >= len(HU_FMICB_PATHOGENS_COLS):
-                    break
-                if raw_mic in ("-", "–", "—", ""):
-                    continue
-                pname, strain, gram = HU_FMICB_PATHOGENS_COLS[idx_1]
-                mv = verbatim_measurement_value(raw_mic)
-                unote = unit_context_note("ug/mL")
-                rows.append({
-                    **_base_row(source, source_id),
-                    "record_id": (
-                        f"rec_{slugify(pep_name)}_{slugify(strain)[:12]}"
-                        f"_fmicb870361_{len(rows) + 1:04d}"
-                    ),
-                    "peptide_name": pep_name,
-                    "peptide_sequence": "",
-                    "pathogen_name": pname,
-                    "pathogen_strain": strain,
-                    "gram_stain": gram,
-                    "measurement_value": mv,
-                    "measurement_unit": "ug/mL",
-                    "notes": (
-                        "Liu et al. 2022 (Front Microbiol) Table 1; MIC in ug/mL; "
-                        "peptide sequences in supplementary materials; "
-                        f"{unote}"
-                    ).strip(),
-                })
-    return rows
 
 
 def parse_melittin_processes_text(page_texts: dict[int, str], source: dict) -> list[dict]:
@@ -277,7 +167,6 @@ def parse_melittin_processes_text(page_texts: dict[int, str], source: dict) -> l
         meta = pep_meta.get(peptide, {})
         seq = meta.get("sequence", "")
         mv = verbatim_measurement_value(mic_s)
-        gram = PROCESSES_GRAM.get(pname, "")
         rows.append({
             **_base_row(source, source_id),
             "record_id": (
@@ -291,7 +180,6 @@ def parse_melittin_processes_text(page_texts: dict[int, str], source: dict) -> l
             ),
             "pathogen_name": pname,
             "pathogen_strain": strain,
-            "gram_stain": gram,
             "measurement_value": mv,
             "measurement_unit": "ug/mL",
             "notes": f"Processes (MDPI) {table_note}; {unit_context_note('ug/mL')}".strip(
@@ -408,17 +296,14 @@ def _base_row(source: dict, source_id: str) -> dict[str, Any]:
         "publication_year": source.get("publication_year", ""),
         "source_url": source.get("source_url", ""),
         "doi": source.get("doi", ""),
-        "measurement_type": "MIC",
         "assay_method": assay.get("assay_method", ""),
         "medium": assay.get("medium", ""),
-        "medium_composition": assay.get("medium_composition", ""),
         "inoculum_cfu_ml": assay.get("inoculum_cfu_ml", ""),
         "temperature_c": assay.get("temperature_c", ""),
         "incubation_time_h": assay.get("incubation_time_h", ""),
         "extraction_method": "pdf_text",
         "extraction_confidence": "high",
         "organism_source": source.get("default_organism_source", ""),
-        "synthesis_type": "synthetic",
     }
 
 
@@ -453,7 +338,7 @@ def parse_ramata_stunda_text(text: str, source: dict) -> list[dict]:
         peptide_name = m.group(1)
         values = [m.group(i) for i in range(2, 8)]
         seq = sequences.get(peptide_name, "")
-        for (pname, strain, gram), raw_mic in zip(RAMATA_STUNDA_PATHOGENS, values):
+        for (pname, strain), raw_mic in zip(RAMATA_STUNDA_PATHOGENS, values):
             mv = verbatim_measurement_value(raw_mic)
             rows.append({
                 **_base_row(source, source_id),
@@ -466,7 +351,6 @@ def parse_ramata_stunda_text(text: str, source: dict) -> list[dict]:
                 "organism_source": "synthetic",
                 "pathogen_name": pname,
                 "pathogen_strain": strain,
-                "gram_stain": gram,
                 "measurement_value": mv,
                 "measurement_unit": "ug/mL",
                 "notes": (
@@ -538,7 +422,6 @@ def parse_zhang_text(page_texts: dict[int, str], source: dict) -> list[dict]:
                 "organism_source": "synthetic",
                 "pathogen_name": "Staphylococcus aureus",
                 "pathogen_strain": strain_label,
-                "gram_stain": "Gram-positive",
                 "measurement_value": mv,
                 "measurement_unit": canonical_measurement_unit("uM"),
                 "notes": f"Zhang 2024 Table 2; {unit_context_note('uM')}".strip("; "),
@@ -568,7 +451,7 @@ def parse_lee_text(page_texts: dict[int, str], source: dict) -> list[dict]:
         vals = m.group(2).split()
         if org_key not in LEE_STRAIN_MAP or len(vals) < 2:
             continue
-        pname, strain, gram = LEE_STRAIN_MAP[org_key]
+        pname, strain = LEE_STRAIN_MAP[org_key]
         for pep_info, raw_mic in zip(LEE_PEPTIDES, vals[:2]):
             mv = verbatim_measurement_value(raw_mic)
             rows.append({
@@ -582,7 +465,6 @@ def parse_lee_text(page_texts: dict[int, str], source: dict) -> list[dict]:
                 "organism_source": pep_info["organism_source"],
                 "pathogen_name": pname,
                 "pathogen_strain": strain,
-                "gram_stain": gram,
                 "measurement_value": mv,
                 "measurement_unit": canonical_measurement_unit("uM"),
                 "notes": (
@@ -593,12 +475,360 @@ def parse_lee_text(page_texts: dict[int, str], source: dict) -> list[dict]:
     return rows
 
 
+# ---------------------------------------------------------------------------
+# New parsers: deepAMP, AI-designed AMPs, D-TN peptides, SK peptides,
+# B7-005 variants, C14R vs ESKAPE
+# ---------------------------------------------------------------------------
+
+# deepAMP (Nature Comm 2024): Table 1 — peptide/sequence/MIC matrix
+DEEPAMP_PATHOGENS: list[tuple[str, str]] = [
+    ("Escherichia coli", "laboratory strain"),
+    ("Staphylococcus aureus", "ATCC 25923"),
+    ("Klebsiella pneumoniae", "laboratory strain"),
+    ("Pseudomonas aeruginosa", "laboratory strain"),
+    ("Staphylococcus aureus", "MRSA"),
+]
+_DEEPAMP_COL_LABELS = ("E.coli", "S.aureus", "K.pneumoniae", "P.aeruginosa", "MRSA")
+
+
+def parse_deepamp_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Li et al. 2024 Nature Comm — Table 1 deepAMP peptides MIC (µg/mL) vs 5 organisms."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    pep_pat = re.compile(
+        r"^(Penetratin|T[12]-\d+)\s+([A-Z]{10,})\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)",
+        re.MULTILINE,
+    )
+    for m in pep_pat.finditer(text_all):
+        pep_name = m.group(1)
+        seq = normalize_sequence(m.group(2))
+        mic_vals = [m.group(i) for i in range(3, 13, 2)]  # groups 3,5,7,9,11 = MIC cols
+        for (pname, strain), raw_mic in zip(DEEPAMP_PATHOGENS, mic_vals):
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_{slugify(pep_name)}_{slugify(pname.split()[1])[:8]}"
+                    f"_deepamp2024_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": pep_name,
+                "peptide_sequence": seq,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": "ug/mL",
+                "notes": f"Li et al. 2024 (Nature Comm) Table 1; {unit_context_note('ug/mL')}",
+            })
+    return rows
+
+
+# AI-designed AMPs (Curr Microbiol 2025): Table 2 — 12 peptides vs 4 bacterial species in µM
+_AI_AMP_PATHOGENS: list[tuple[str, str]] = [
+    ("Escherichia coli", "ATCC 25922"),        # E.c
+    ("Klebsiella pneumoniae", "ATCC 700603"),  # K.q (quasipneumoniae)
+    ("Staphylococcus aureus", "ATCC 25923"),   # S.a
+    ("Pseudomonas aeruginosa", "ATCC 27853"),  # P.a
+]
+
+
+def parse_ai_amp_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Mesa et al. 2025 Curr Microbiol — Table 2: AI-designed peptides MIC (µM) vs 4 bacteria."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    # Pattern: PeptideName Sequence C.a_MIC E.c_MIC K.q_MIC S.a_MIC P.a_MIC ...
+    # Skip first col (C.albicans = fungal), take cols 2-5
+    pep_pat = re.compile(
+        r"^(OrP\d+M?|VeP\d+M?)\s+([A-Z]{8,})\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)",
+        re.MULTILINE,
+    )
+    for m in pep_pat.finditer(text_all):
+        pep_name = m.group(1)
+        seq = normalize_sequence(m.group(2))
+        # group 3=C.a (skip), 4=E.c, 5=K.q, 6=S.a, 7=P.a
+        mic_vals = [m.group(i) for i in range(4, 8)]
+        for (pname, strain), raw_mic in zip(_AI_AMP_PATHOGENS, mic_vals):
+            if raw_mic.lstrip(">") == "":
+                continue
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_{slugify(pep_name)}_{slugify(pname.split()[1])[:8]}"
+                    f"_aiamp2025_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": pep_name,
+                "peptide_sequence": seq,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": canonical_measurement_unit("uM"),
+                "notes": f"Mesa et al. 2025 (Curr Microbiol) Table 2; {unit_context_note('uM')}",
+            })
+    return rows
+
+
+# D-TN peptides (Life 2025): Table 1 — TN/D-TN peptides MIC (µg/mL) vs 3 bacteria
+_LIFE_TN_PATHOGENS: list[tuple[str, str]] = [
+    ("Staphylococcus aureus", "ATCC 29213"),
+    ("Escherichia coli", "ATCC 25922"),
+    ("Pseudomonas aeruginosa", "ATCC 27853"),
+]
+_LIFE_TN6_2_SEQ = "RLLRLLRLLLRLLRLLR"
+
+
+def parse_life_tn_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Kocagoz et al. 2025 Life — Table 1: TN/D-TN peptides MIC (µg/mL) vs 3 bacteria."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    pep_pat = re.compile(
+        r"^(D-TN\d+[A-Z\d/]*|TN\d+[A-Z\d\-]*(?:\(\d\))?|RTN\d+|D/L-TN\d+)\s+([A-Z]+)\s+(>?\d+)\s+(>?\d+)\s+(>?\d+)\s+(>?\d+)",
+        re.MULTILINE,
+    )
+    for m in pep_pat.finditer(text_all):
+        pep_name = m.group(1)
+        seq = normalize_sequence(m.group(2))
+        # groups 3=S.aureus, 4=E.coli, 5=P.aeruginosa, 6=C.albicans (skip)
+        mic_vals = [m.group(i) for i in range(3, 6)]
+        for (pname, strain), raw_mic in zip(_LIFE_TN_PATHOGENS, mic_vals):
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_{slugify(pep_name)}_{slugify(pname.split()[1])[:8]}"
+                    f"_lifedtn2025_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": pep_name,
+                "peptide_sequence": seq,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": "ug/mL",
+                "notes": f"Kocagoz et al. 2025 (Life) Table 1; {unit_context_note('ug/mL')}",
+            })
+
+    # Handle TN6(2) whose sequence wraps across lines in PDF text
+    tn62_pat = re.compile(
+        r"TN6\(2\)\s+(>?\d+)\s+(>?\d+)\s+(>?\d+)\s+(>?\d+)", re.MULTILINE
+    )
+    for m in tn62_pat.finditer(text_all):
+        mic_vals = [m.group(i) for i in range(1, 4)]
+        for (pname, strain), raw_mic in zip(_LIFE_TN_PATHOGENS, mic_vals):
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_tn6_2_{slugify(pname.split()[1])[:8]}"
+                    f"_lifedtn2025_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": "TN6(2)",
+                "peptide_sequence": _LIFE_TN6_2_SEQ,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": "ug/mL",
+                "notes": f"Kocagoz et al. 2025 (Life) Table 1; sequence reconstructed from split PDF line; {unit_context_note('ug/mL')}",
+            })
+    return rows
+
+
+# SK peptides (Springer 2025): Table 4 organism-as-rows format
+_SK_PEPTIDE_SEQS: dict[str, str] = {
+    "SK1203": "AAWWKAKKWAWAKAWAWKKAW",
+    "SK1217": "AFWWKAKKFAWAKKFAWWKAW",
+    "SK1260": "KAFAVKFAWKFHAWKAWKKAW",
+    "SK1286": "HFAPKKSKPAHFPHKSKPKAW",
+    "SK1281": "HFAVKHAVWAHVWHKAKSR",
+    "SK1283": "HFAVKKAKVAHFVHKAKSKAW",
+}
+_SK_PEPTIDE_ORDER = ("SK1203", "SK1217", "SK1260", "SK1281", "SK1283", "SK1286")
+_SK_ORGANISM_MAP: dict[str, tuple[str, str]] = {
+    "e.coli":       ("Escherichia coli",      "ATCC 8739"),
+    "s.aureus":     ("Staphylococcus aureus",  "ATCC 6538"),
+    "k.pneumonia":  ("Klebsiella pneumoniae",  "ATCC 700603"),
+    "p.aeruginsa":  ("Pseudomonas aeruginosa", "ATCC 9027"),
+    "p.aeruginosa": ("Pseudomonas aeruginosa", "ATCC 9027"),
+}
+
+
+def parse_sk_peptides_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Kakkerla et al. 2025 Discover Medicine — Table 4: SK peptides MIC (µg/mL) vs 4 bacteria."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    row_pat = re.compile(
+        r"^(E\.coli|S\.aureus|K\.pneumonia|P\.aeruginsa|P\.aeruginosa)\s+"
+        r"([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)\s+([\d.>]+)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    for m in row_pat.finditer(text_all):
+        org_key = re.sub(r"\s+", "", m.group(1)).lower()
+        organism_info = _SK_ORGANISM_MAP.get(org_key)
+        if not organism_info:
+            continue
+        pname, strain = organism_info
+        mic_vals = [m.group(i) for i in range(2, 8)]
+        for pep_name, raw_mic in zip(_SK_PEPTIDE_ORDER, mic_vals):
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            seq = _SK_PEPTIDE_SEQS.get(pep_name, "")
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_{slugify(pep_name)}_{slugify(pname.split()[1])[:8]}"
+                    f"_sk2025_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": pep_name,
+                "peptide_sequence": seq,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": "ug/mL",
+                "notes": f"Kakkerla et al. 2025 (Discover Med) Table 4; {unit_context_note('ug/mL')}",
+            })
+    return rows
+
+
+# B7-005 variants (Antibiotics 2025): Table 2 — 3 peptides vs E.coli + 2 P.aeruginosa in µM
+_B7_PEPTIDE_SEQS: dict[str, str] = {
+    "B7-005": "WRIRRRWPRLPRPRWR",
+    "B7-006": "WRIRRWPRLPRPRWR",
+    "B7-007": "WRIRRWPRLPRWR",
+}
+_B7_PEPTIDE_ORDER = ("B7-005", "B7-006", "B7-007")
+_B7_ORGANISM_MAP: dict[str, tuple[str, str]] = {
+    "e.coliatcc25922":             ("Escherichia coli",       "ATCC 25922"),
+    "p.aeruginosapao1":            ("Pseudomonas aeruginosa", "ATCC 15692 PAO1"),
+    "p.aeruginosaatcc27823":       ("Pseudomonas aeruginosa", "ATCC 27823"),
+}
+
+
+def parse_b7_proline_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Cappella et al. 2025 Antibiotics — Table 2: B7-005/B7-006/B7-007 MIC (µM) vs 3 strains."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    row_pat = re.compile(
+        r"^(E\.coliATCC25922|P\.aeruginosaPAO1(?:\(ATCC15692\))?|P\.aeruginosaATCC27823)\s+"
+        r"([\d.]+)\s+([\d.]+)\s+([\d.]+)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    for m in row_pat.finditer(text_all):
+        org_key = re.sub(r"[\s()]+", "", m.group(1)).lower()
+        organism_info = _B7_ORGANISM_MAP.get(org_key)
+        if not organism_info:
+            continue
+        pname, strain = organism_info
+        mic_vals = [m.group(i) for i in range(2, 5)]
+        for pep_name, raw_mic in zip(_B7_PEPTIDE_ORDER, mic_vals):
+            mv = verbatim_measurement_value(raw_mic)
+            if not mv:
+                continue
+            seq = _B7_PEPTIDE_SEQS.get(pep_name, "")
+            rows.append({
+                **_base_row(source, source_id),
+                "record_id": (
+                    f"rec_{slugify(pep_name)}_{slugify(pname.split()[1])[:8]}"
+                    f"_b72025_{len(rows) + 1:04d}"
+                ),
+                "peptide_name": pep_name,
+                "peptide_sequence": seq,
+                "organism_source": "synthetic",
+                "pathogen_name": pname,
+                "pathogen_strain": strain,
+                "measurement_value": mv,
+                "measurement_unit": canonical_measurement_unit("uM"),
+                "notes": f"Cappella et al. 2025 (Antibiotics) Table 2; {unit_context_note('uM')}",
+            })
+    return rows
+
+
+# Canonical C14R sequence from Mildenberger et al. 2024, Pharmaceuticals 17:83 (not reproduced in Antibiotics 2026 MIC paper).
+_C14R_CANON_SEQUENCE = "CSSGSLWRLIRRFLRR"
+
+
+# C14R vs ESKAPE (Antibiotics 2026): Table 1 — single peptide vs 6 ESKAPE strains in µg/mL
+_C14R_ORGANISM_MAP: dict[str, tuple[str, str]] = {
+    "e.faecium,vre":            ("Enterococcus faecium",    "DSM 17050 VRE"),
+    "s.aureus,mrsa":            ("Staphylococcus aureus",   "ATCC 43300 MRSA"),
+    "k.quasipneumoniae,esbl":   ("Klebsiella pneumoniae",   "ATCC 700603 ESBL"),
+    "a.baumannii":              ("Acinetobacter baumannii", "ATCC 19606"),
+    "p.aeruginosa":             ("Pseudomonas aeruginosa",  "PAO1"),
+    "e.coli,esbl":              ("Escherichia coli",        "BSU1286 ESBL"),
+}
+
+
+def parse_c14r_text(page_texts: dict[int, str], source: dict) -> list[dict]:
+    """Gruber et al. 2026 Antibiotics — Table 1: C14R MIC (µg/mL) vs 6 ESKAPE pathogens."""
+    source_id = source["source_id"]
+    text_all = "\n".join(page_texts.get(p, "") for p in sorted(page_texts))
+
+    rows: list[dict] = []
+    # Table rows: "Organism MIC[µg/mL] MBIC[µg/mL]"
+    row_pat = re.compile(
+        r"^(E\.faecium[,\s]+VRE|S\.aureus[,\s]+MRSA|K\.quasipneumoniae[,\s]+ESBL"
+        r"|A\.baumannii|P\.aeruginosa|E\.coli[,\s]+ESBL)\s+([\d.]+)\s+([\d.]+|n\.a\.)",
+        re.MULTILINE | re.IGNORECASE,
+    )
+    for m in row_pat.finditer(text_all):
+        org_raw = re.sub(r"\s+", "", m.group(1)).lower()
+        org_info = _C14R_ORGANISM_MAP.get(org_raw)
+        if not org_info:
+            continue
+        pname, strain = org_info
+        mv = verbatim_measurement_value(m.group(2))
+        if not mv:
+            continue
+        rows.append({
+            **_base_row(source, source_id),
+            "record_id": (
+                f"rec_c14r_{slugify(pname.split()[1])[:8]}"
+                f"_c14r2026_{len(rows) + 1:04d}"
+            ),
+            "peptide_name": "C14R",
+            "peptide_sequence": _C14R_CANON_SEQUENCE,
+            "organism_source": "synthetic",
+            "pathogen_name": pname,
+            "pathogen_strain": strain,
+            "measurement_value": mv,
+            "measurement_unit": "ug/mL",
+            "notes": f"Gruber et al. 2026 (Antibiotics) Table 1; Gompertz-fit MIC; sequence from Mildenberger et al. 2024 (Pharmaceuticals 17:83); {unit_context_note('ug/mL')}",
+        })
+    return rows
+
+
 TEXT_PARSERS: dict[str, Callable[[dict[int, str], dict], list[dict]]] = {
     "paper_ramata_stunda_2023": lambda texts, src: parse_ramata_stunda_text("\n".join(texts.values()), src),
     "paper_zhang_2024": parse_zhang_text,
     "paper_lee_2023": parse_lee_text,
-    "paper_hu_fmicb_2022_alpha_helix": parse_hu_fmicb_text,
     "paper_melittin_processes_mdpi": parse_melittin_processes_text,
+    "paper_deepamp_nature_2024": parse_deepamp_text,
+    "paper_ai_amp_curr_microbiol_2025": parse_ai_amp_text,
+    "paper_life_tn_peptides_2025": parse_life_tn_text,
+    "paper_sk_peptides_springer_2025": parse_sk_peptides_text,
+    "paper_b7_proline_rich_2025": parse_b7_proline_text,
+    "paper_c14r_eskape_2026": parse_c14r_text,
 }
 
 

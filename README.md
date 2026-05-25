@@ -1,16 +1,28 @@
-# Aptamer–protein binding dataset (project template)
+# Antibacterial peptide MIC dataset
 
-Publication-ready **dataset project template** for the course *Extraction and preparation of chemical information*. Students move from a research topic to a structured, validated dataset with documented sources, extraction steps, cleaning pipeline, reports, and citation metadata.
-
-**Example topic:** Aptamer–protein binding dataset (replace with your own project in `project.json`).
+Structured, publication-ready dataset of experimentally reported **minimum inhibitory concentration (MIC)** values for antibacterial peptides against bacterial pathogens. Built as part of the course *Extraction and preparation of chemical information*.
 
 ## Scientific task
 
-Collect experimentally reported aptamer–protein binding measurements (sequences, targets, affinity values, assay context) so they can be compared across literature and database sources.
+Collect MIC measurements of antibacterial peptides from peer-reviewed literature and curated databases so that activity profiles can be compared across sources, assay conditions, and pathogen types.
 
 ## What is one record?
 
-One **record** = one experimentally reported aptamer–protein binding measurement from a specific source (one row in `data/processed/dataset.csv`). See `project.json` and `reports/practice_01_record_and_schema.md`.
+One **record** = one experimentally reported MIC value of one antibacterial peptide against one bacterial pathogen from a specific source (one row in `data/processed/dataset.csv`).
+
+Each record captures (when available): peptide **sequence** and name, organism origin of the peptide, pathogen species and strain, verbatim MIC value and normalized unit; assay fields (`assay_method`, `medium`, inoculum, temperature, incubation time); provenance (`source_id`, URLs, DOI, publication year).
+
+## Dataset at a glance
+
+| Metric | Value |
+|--------|-------|
+| Rows | **1 521** |
+| Unique sources | 12 (2 databases + 10 papers) |
+| Schema fields | **18** (see `specs/dataset_schema.json`) |
+| Required columns | `record_id`, **`peptide_sequence`**, `pathogen_name`, `measurement_value`, `source_id` |
+| Rows without peptide sequence after cleaning | **0** |
+| Dominant unit | `ug/mL` (~59 %), `uM` (~34 %) |
+| Publication years covered | 2023–2026 |
 
 ## Repository structure
 
@@ -23,23 +35,30 @@ One **record** = one experimentally reported aptamer–protein binding measureme
 | `data/interim/` | Merged table before final cleaning |
 | `data/processed/` | Publication dataset (`dataset.csv`) |
 | `scripts/` | Reproducible extract, build, clean, validate |
-| `reports/` | Human-readable practice and final reports |
-| `notebooks/` | Optional exploration only |
+| `reports/` | Practice and final reports |
+| `notebooks/` | Exploratory data analysis |
 | `tests/` | Pytest checks for required artifacts |
 
-**Formats:** JSON for specs and manifests; CSV for tabular data; Python for pipelines; Markdown for reports and documentation only. Notebooks are optional.
+**Formats:** JSON for specs/manifests; CSV for tabular data; Python for pipelines; Markdown for reports.
 
-## Five course practices
+## Data sources
 
-Develop the repository in five steps (see `reports/`):
+Defined in `specs/source_map.json` (version 1.8.1):
 
-1. **Record definition and dataset schema** — `specs/dataset_schema.json`, Practice 1 report  
-2. **Source map** — `specs/source_map.json`, Practice 2 report  
-3. **PDF extraction** — `specs/pdf_extraction_manifest.json`, `scripts/extract_pdf.py`, Practice 3 report  
-4. **Web extraction** — `specs/web_extraction_manifest.json`, `scripts/extract_web.py`, Practice 4 report  
-5. **Cleaning, normalization and publication** — `specs/cleaning_pipeline.json`, cleaning scripts, Practice 5 report  
-
-Complete **`reports/final_report.md`** and **`dataset_card.md`** before submission.
+| Source | Type | Records |
+|--------|------|---------|
+| DRAMP (`Antimicrobial.xlsx` from DRAMP 4.0 activity downloads) | Database | ~999 |
+| DBAASP (REST API) | Database | ~90 |
+| Ramata-Stunda et al. 2023 | Paper | 66 |
+| deepAMP, Nature Comm 2024 | Paper | 150 |
+| AI-designed AMPs, Curr Microbiol 2025 | Paper | 76 |
+| D-TN peptides, Life 2025 | Paper | 45 |
+| Melittin analogues, Processes 2026 | Paper | 34 |
+| SK-peptides, Springer 2025 | Paper | 24 |
+| Lee et al. 2023 (cecropins) | Paper | 16 |
+| Zhang et al. 2024 | Paper | 10 |
+| B7-005 proline-rich, Antibiotics 2025 | Paper | 6 |
+| C14R vs ESKAPE, Antibiotics 2026 | Paper | 6 |
 
 ## Data pipeline
 
@@ -51,43 +70,36 @@ raw (PDF / web / external)
   → validate (rules + pytest)
 ```
 
-## Required final artifacts
+## How to build the dataset
 
-- `data/processed/dataset.csv` aligned with `specs/dataset_schema.json`
-- Updated `specs/source_map.json` and extraction manifests
-- Practice reports 1–5 and `reports/final_report.md`
-- `dataset_card.md`, `LICENSE`, `CITATION.cff`
-- Passing validation and tests
+```bash
+pip install -r requirements.txt
+python scripts/extract_pdf.py      # parse PDF papers (requires pdfplumber)
+python scripts/extract_web.py      # fetch DBAASP API + DRAMP workbook
+python scripts/build_dataset.py    # merge → interim
+python scripts/clean_dataset.py    # normalize, deduplicate → processed
+```
 
 ## How to run validation
 
 ```bash
-pip install -r requirements.txt
 python scripts/validate_project.py
 pytest
 ```
 
-## How to build the dataset
+## Measurement values
 
-```bash
-python scripts/build_dataset.py    # merge extracts → interim + processed
-python scripts/clean_dataset.py    # normalize and write processed dataset
-```
+`measurement_value` is a **required** field: every row must carry the MIC as reported in the source. Values are stored **verbatim** (e.g. `4.0`, `>64`, `≤2`). Units are normalized to canonical labels in `measurement_unit` via `scripts/utils.py` (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`). No automatic µM → µg/mL conversion is performed.
 
-Placeholder extraction (no PDF/HTML libraries required):
+See `specs/dataset_schema.json` for required fields and full field list (`peptide_sequence` is required).
 
-```bash
-python scripts/extract_pdf.py
-python scripts/extract_web.py
-```
+## Known limitations
 
-### Peptide-MIC specifics (this repository)
+- DRAMP records do not include `publication_year` (field is blank for ~72 % of rows).
+- 7 DRAMP rows use `AU/μg` (activity units), which cannot be converted to concentration units.
+- DBAASP extraction requires a live network connection to `dbaasp.org`.
+- Some DRAMP pathogen names contain inhibition-percentage prefixes (data quality limitation of the source).
 
-- **Web extraction** aggregates **two** registered sources declared in [`specs/web_extraction_manifest.json`](specs/web_extraction_manifest.json): `db_dbaasp`, `db_dramp` (`scripts/extract_web.py`).
-- DRAMP ingestion reads the bundled workbook **`data/raw/web/dramp_general_dataset.xlsx`** (replace with fresh DRAMP antibacterial exports following the documented column naming).
-- **Measurements** remain in native publication/UI text: verbatim strings in **`measurement_value`** and canonical labels (**`measurement_unit`**) via **`scripts/utils.py`** — no automatic µM→µg/mL conversion anywhere in-repo.
 ## License and citation
 
-- Replace the placeholder in **`LICENSE`** before publication (e.g. CC-BY-4.0 or CC0-1.0, subject to upstream source licenses).
-- Fill in **`CITATION.cff`** with authors, version, and repository URL.
-- Summarize the dataset for users in **`dataset_card.md`**.
+See `LICENSE` (CC-BY-4.0) and `CITATION.cff`.

@@ -1,18 +1,25 @@
 cff-version: 1.2.0
-title: "Aptamer–protein binding dataset"
+title: "Antibacterial peptide MIC dataset"
 message: "If you use this dataset, please cite it as below."
 type: dataset
 authors:
-  - family-names: "Student"
-    given-names: "Name"
-    affiliation: "University / Course"
-repository-code: "https://github.com/example/aptamer-protein-binding-dataset"
-url: "https://github.com/example/aptamer-protein-binding-dataset"
-version: 0.1.0
-date-released: 2026-05-22
+  - family-names: "Druzhininskii"
+    given-names: ""
+    affiliation: "Course: Extraction and preparation of chemical information"
+repository-code: "https://github.com/example/anti-bac-peptides"
+url: "https://github.com/example/anti-bac-peptides"
+version: 0.5.0
+date-released: 2026-05-25
+abstract: >
+  Curated tabular collection of 1 521 experimentally reported minimum inhibitory
+  concentration (MIC) values for antibacterial peptides against bacterial pathogens.
+  Integrates records from DRAMP, DBAASP, and ten open-access papers (2023–2026).
 keywords:
-  - aptamer
-  - protein binding
-  - affinity
+  - antibacterial peptides
+  - antimicrobial peptides
+  - MIC
+  - minimum inhibitory concentration
+  - DRAMP
+  - DBAASP
   - scientific data extraction
 license: CC-BY-4.0

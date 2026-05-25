@@ -1,7 +1,7 @@
 {
   "project_id": "antibacterial_peptide_mic",
   "project_title": "Antibacterial peptide MIC dataset",
-  "project_status": "in_progress",
+  "project_status": "complete",
   "scientific_task": "Collect experimentally reported MIC values of antibacterial peptides against bacterial pathogens for cross-source comparison of activity and assay conditions.",
   "record_definition": {
     "one_record": "One experimentally reported MIC measurement of one antibacterial peptide against one bacterial pathogen from a specific source."
@@ -17,5 +17,5 @@
   "source_map_path": "specs/source_map.json",
   "created_by": "",
   "created_date": "2026-05-24",
-  "version": "0.3.0"
+  "version": "0.5.0"
 }

@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.7.0",
+  "schema_version": "0.8.0",
   "dataset_title": "Antibacterial peptide MIC dataset",
   "fields": [
     {
@@ -12,8 +12,8 @@
     {
       "name": "peptide_sequence",
       "type": "string",
-      "required": false,
-      "description": "Amino acid sequence of the antibacterial peptide in single-letter code.",
+      "required": true,
+      "description": "Amino acid sequence of the antibacterial peptide in single-letter code (required on every row after cleaning).",
       "example": "LLGDFFRKSKEKIGKEFKRIVQRIKDFLRNLVPRTES",
       "normalization_rule": "Uppercase; remove spaces and hyphens; keep standard one-letter amino acid codes only."
     },
@@ -33,14 +33,6 @@
       "normalization_rule": "Use binomial species name for natural peptides; 'synthetic' for de-novo designed peptides."
     },
     {
-      "name": "synthesis_type",
-      "type": "string",
-      "required": false,
-      "description": "How the peptide was produced: ribosomal, nonribosomal, or synthetic.",
-      "example": "ribosomal",
-      "allowed_values": ["ribosomal", "nonribosomal", "synthetic", "unknown"]
-    },
-    {
       "name": "pathogen_name",
       "type": "string",
       "required": true,
@@ -53,21 +45,6 @@
       "required": false,
       "description": "Strain or isolate identifier when reported in the source.",
       "example": "ATCC 25922"
-    },
-    {
-      "name": "gram_stain",
-      "type": "string",
-      "required": false,
-      "description": "Gram classification of the pathogen when known or reported.",
-      "example": "Gram-negative",
-      "allowed_values": ["Gram-positive", "Gram-negative", "unknown"]
-    },
-    {
-      "name": "measurement_type",
-      "type": "string",
-      "required": true,
-      "description": "Type of antimicrobial activity measurement; fixed to MIC for this dataset.",
-      "example": "MIC"
     },
     {
       "name": "measurement_value",
@@ -98,14 +75,6 @@
       "required": false,
       "description": "Base growth medium name when reported (MHB, LB, CAMHB, PBS, etc.).",
       "example": "MHB"
-    },
-    {
-      "name": "medium_composition",
-      "type": "string",
-      "required": false,
-      "description": "Concentrations of substances in the assay medium.",
-      "example": "150 mM NaCl; 2 mM CaCl2; pH 7.4",
-      "normalization_rule": "Semicolon-separated substance concentrations as reported; do not infer unstated components."
     },
     {
       "name": "inoculum_cfu_ml",

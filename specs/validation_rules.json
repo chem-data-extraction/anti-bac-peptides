@@ -1,5 +1,5 @@
 {
-  "validation_version": "0.1.2",
+  "validation_version": "0.1.4",
   "rules": [
     {
       "rule_id": "files_exist_core",
@@ -30,6 +30,13 @@
       "description": "record_id values must be unique across the dataset."
     },
     {
+      "rule_id": "peptide_sequence_not_null",
+      "target": "peptide_sequence",
+      "rule_type": "not_null",
+      "severity": "error",
+      "description": "Every row must have a non-empty peptide_sequence after normalization."
+    },
+    {
       "rule_id": "source_id_not_null",
       "target": "source_id",
       "rule_type": "not_null",
@@ -51,11 +58,11 @@
       "description": "Dataset columns must match field names in specs/dataset_schema.json."
     },
     {
-      "rule_id": "measurement_value_text_or_null",
+      "rule_id": "measurement_value_not_null",
       "target": "measurement_value",
-      "rule_type": "scalar_or_null",
+      "rule_type": "not_null",
       "severity": "error",
-      "description": "measurement_value is the verbatim MIC token from the source (number, censored bound, range text); may be empty/null."
+      "description": "Every row must have a non-empty measurement_value (verbatim MIC token: number, censored bound, or range text)."
     }
   ]
 }

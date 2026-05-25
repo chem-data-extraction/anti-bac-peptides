@@ -1,20 +1,20 @@
 {
-  "web_extraction_version": "2.0.0",
+  "web_extraction_version": "2.2.0",
   "output_records_file": "data/extracted/web_extracted_records.csv",
   "script": "scripts/extract_web.py",
-  "schema_version": "0.7.0",
+  "schema_version": "0.8.0",
   "max_records_per_source": 1000,
   "output_columns": [
     "record_id", "peptide_sequence",
-    "peptide_name", "organism_source", "synthesis_type",
-    "pathogen_name", "pathogen_strain", "gram_stain",
-    "measurement_type", "measurement_value", "measurement_unit",
-    "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
+    "peptide_name", "organism_source",
+    "pathogen_name", "pathogen_strain",
+    "measurement_value", "measurement_unit",
+    "assay_method", "medium", "inoculum_cfu_ml",
     "temperature_c", "incubation_time_h",
     "source_id", "source_type", "publication_year", "source_url", "doi",
     "extraction_method", "extraction_confidence", "notes"
   ],
-  "extraction_note": "Two ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP general_amps workbook from data/raw/web (Target_Organism `(MIC …)` parsing). Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below.",
+  "extraction_note": "Two ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP activity-classified workbook `Antimicrobial.xlsx` from data/raw/web (same column layout as the general AMP export; Target_Organism `(MIC …)` parsing). Use the DRAMP 4.0 download sorted by antimicrobial activity—not the bundled general workbook. Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below. Every exported row must have non-empty peptide_sequence and measurement_value (verbatim MIC token). Set `sheet_name` to worksheet name or sheet index `0` if your file differs from `general_amps`.",
   "input_pages": [
     {
       "source_id": "db_dbaasp",
@@ -44,14 +44,14 @@
     },
     {
       "source_id": "db_dramp",
-      "page_id": "dramp_general_workbook",
+      "page_id": "dramp_antimicrobial_workbook",
       "url": "https://dramp.cpu-bioinfor.org",
       "doi": "10.1093/nar/gkae1008",
       "license": "CC BY 4.0",
       "max_records": 1000,
-      "local_workbook_path": "data/raw/web/dramp_general_dataset.xlsx",
+      "local_workbook_path": "data/raw/web/Antimicrobial.xlsx",
       "sheet_name": "general_amps",
-      "access_method": "Place DRAMP antibacterial/general Excel export (or curated snapshot matching column names DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID) under local_workbook_path.",
+      "access_method": "Download `Antimicrobial.xlsx` from the DRAMP 4.0 bulk downloads page (activity subgroup), place it at local_workbook_path. Expected columns include DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID (same layout as the general AMP table). If the worksheet is not named general_amps, set sheet_name in this manifest to the actual name or to 0 for the first sheet.",
       "notes": "Substantial overlap with DBAASP/literature is expected — use source_id + sequence + pathogen when deduplicating.",
       "raw_snapshot_path": "data/raw/web/dramp_extraction_run_meta.json",
       "parser_plan": {

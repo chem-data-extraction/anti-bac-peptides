@@ -1,5 +1,5 @@
 {
-  "pipeline_version": "0.7.0",
+  "pipeline_version": "0.8.0",
   "inputs": [
     "data/extracted/pdf_extracted_records.csv",
     "data/extracted/web_extracted_records.csv"
@@ -26,7 +26,7 @@
     {
       "step_id": "canonical_measurement_units",
       "operation": "string_cleanup",
-      "description": "Canonicalize measurement_unit labels; preserve measurement_value as verbatim MIC text.",
+      "description": "Canonicalize measurement_unit labels; preserve required measurement_value as verbatim MIC text (non-empty on every exported row).",
       "fields": ["measurement_value", "measurement_unit"],
       "output_file": "data/interim/merged_records.csv"
     },
@@ -40,8 +40,18 @@
     {
       "step_id": "standardize_missing_values",
       "operation": "missing_value_cleanup",
-      "description": "Map NA, N/A, -, empty strings to null-like values except verbatim MIC tokens.",
-      "fields": ["medium_composition"],
+      "description": "Map NA, N/A, -, empty strings to null-like values for nullable string columns; preserve verbatim MIC tokens and normalized peptide_sequence.",
+      "fields": [
+        "peptide_name", "organism_source", "pathogen_strain", "assay_method",
+        "medium", "source_type", "source_url", "doi"
+      ],
+      "output_file": "data/interim/merged_records.csv"
+    },
+    {
+      "step_id": "require_peptide_sequence",
+      "operation": "filter",
+      "description": "Drop rows with empty peptide_sequence after sequence normalization.",
+      "fields": ["peptide_sequence"],
       "output_file": "data/interim/merged_records.csv"
     },
     {

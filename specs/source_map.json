@@ -1,7 +1,7 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.7.0",
+  "source_map_version": "1.8.1",
   "source_groups": {
     "databases": [
       {
@@ -18,9 +18,9 @@
         "estimated_records": 1000,
         "available_data_types": ["structured_records", "sequences", "activity_values", "assay_conditions"],
         "expected_fields": [
-          "peptide_sequence", "peptide_name", "organism_source", "synthesis_type",
+          "peptide_sequence", "peptide_name", "organism_source",
           "pathogen_name", "pathogen_strain",
-          "measurement_type", "measurement_value", "measurement_unit", "medium",
+          "measurement_value", "measurement_unit", "medium",
           "inoculum_cfu_ml"
         ],
         "extraction_strategy": {
@@ -28,7 +28,7 @@
           "tool": "scripts/extract_web.py → fetch_dbaasp",
           "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor stores required verbatim MIC numeric text (`measurement_value`) plus canonical measurement_unit labels (see scripts/utils.py)."
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor exports non-empty `peptide_sequence` (skipped if missing), required verbatim MIC text (`measurement_value`), and canonical `measurement_unit` labels (see scripts/utils.py)."
       },
       {
         "source_id": "db_dramp",
@@ -37,7 +37,7 @@
         "url": "https://dramp.cpu-bioinfor.org",
         "doi": "10.1093/nar/gkae1008",
         "access_status": "open_access",
-        "access_method": "Bulk Excel workbook placed at `data/raw/web/dramp_general_dataset.xlsx` (general_amps sheet mirrors DRAMP workbook columns DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID). Official download bundles are categorized by activity on the DRAMP site.",
+        "access_method": "Bulk Excel `Antimicrobial.xlsx` (DRAMP 4.0 download by activity—not the bundled general workbook) placed at `data/raw/web/Antimicrobial.xlsx`; sheet `general_amps` unless overridden in specs/web_extraction_manifest.json (same DRAMP columns: DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID).",
         "access_date": "2026-05-24",
         "license": "CC BY 4.0 (see DRAMP site)",
         "expected_data_volume": "high",
@@ -68,8 +68,8 @@
         "available_data_types": ["tables", "text"],
         "expected_fields": [
           "peptide_sequence", "peptide_name",
-          "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "measurement_unit", "assay_method", "medium"
+          "pathogen_name", "pathogen_strain",
+          "measurement_value", "measurement_unit", "assay_method", "medium"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
@@ -94,8 +94,8 @@
         "available_data_types": ["tables", "figures", "text"],
         "expected_fields": [
           "peptide_sequence", "peptide_name",
-          "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "measurement_unit", "assay_method"
+          "pathogen_name", "pathogen_strain",
+          "measurement_value", "measurement_unit", "assay_method"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
@@ -120,8 +120,8 @@
         "available_data_types": ["tables", "text", "supplementary"],
         "expected_fields": [
           "peptide_sequence", "peptide_name", "organism_source",
-          "pathogen_name", "pathogen_strain", "gram_stain",
-          "measurement_type", "measurement_value", "measurement_unit", "assay_method", "medium"
+          "pathogen_name", "pathogen_strain",
+          "measurement_value", "measurement_unit", "assay_method", "medium"
         ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
@@ -144,7 +144,7 @@
         "expected_data_volume": "medium",
         "estimated_records": 80,
         "available_data_types": ["tables", "text"],
-        "expected_fields": ["peptide_name", "pathogen_name", "measurement_value"],
+        "expected_fields": ["peptide_name", "pathogen_name", "peptide_sequence", "measurement_value"],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "scripts/extract_pdf.py → parse_melittin_processes_text (pdfplumber)",
@@ -276,14 +276,16 @@
         "expected_data_volume": "low",
         "estimated_records": 6,
         "available_data_types": ["tables", "text"],
-        "expected_fields": ["peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
+        "expected_fields": [
+          "peptide_name", "peptide_sequence", "pathogen_name", "measurement_value", "measurement_unit"
+        ],
         "extraction_strategy": {
           "recommended_method": "pdf_table_extraction",
           "tool": "scripts/extract_pdf.py → parse_c14r_text (pdfplumber)",
           "pages": [4],
           "notes": "Table 1 (p.4): C14R MIC in µg/mL vs E.faecium VRE, S.aureus MRSA, K.quasipneumoniae ESBL, A.baumannii, P.aeruginosa, E.coli ESBL. MIC determined by resazurin-based Gompertz-fit analysis."
         },
-        "notes": "Designed pore-forming AMP C14R (Ulm University). Sequence not published in this paper; see Mildenberger et al. 2024 (Pharmaceuticals 17:83)."
+        "notes": "Designed pore-forming AMP C14R (Ulm University). Antibiotics 2026 does not reproduce the peptide sequence; the extractor fills `peptide_sequence` from Mildenberger et al. 2024 (Pharmaceuticals 17:83) (CSSGSLWRLIRRFLRR)."
       }
     ]
   }

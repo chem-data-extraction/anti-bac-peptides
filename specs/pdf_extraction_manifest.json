@@ -1,20 +1,33 @@
 {
-  "pdf_extraction_version": "1.4.0",
+  "pdf_extraction_version": "1.6.0",
   "pdf_extraction_process": "Extract antibacterial peptide MIC records from open-access PDFs via pdfplumber text/table parsing driven by scripts/extract_pdf.py.",
   "output_records_file": "data/extracted/pdf_extracted_records.csv",
-  "schema_version": "0.7.0",
+  "schema_version": "0.8.0",
   "max_records_per_source": 1000,
   "output_columns": [
-    "record_id", "peptide_sequence",
-    "peptide_name", "organism_source", "synthesis_type",
-    "pathogen_name", "pathogen_strain", "gram_stain",
-    "measurement_type", "measurement_value", "measurement_unit",
-    "assay_method", "medium", "medium_composition", "inoculum_cfu_ml",
-    "temperature_c", "incubation_time_h",
-    "source_id", "source_type", "publication_year", "source_url", "doi",
-    "extraction_method", "extraction_confidence", "notes"
+    "record_id",
+    "peptide_sequence",
+    "peptide_name",
+    "organism_source",
+    "pathogen_name",
+    "pathogen_strain",
+    "measurement_value",
+    "measurement_unit",
+    "assay_method",
+    "medium",
+    "inoculum_cfu_ml",
+    "temperature_c",
+    "incubation_time_h",
+    "source_id",
+    "source_type",
+    "publication_year",
+    "source_url",
+    "doi",
+    "extraction_method",
+    "extraction_confidence",
+    "notes"
   ],
-  "extraction_note": "Place PDF files in data/raw/pdf/ exactly as pdf_path names in input_sources below. Implemented parsers register in TEXT_PARSERS inside scripts/extract_pdf.py.",
+  "extraction_note": "Place PDF files in data/raw/pdf/ exactly as pdf_path names in input_sources below. Implemented parsers register in TEXT_PARSERS inside scripts/extract_pdf.py. Every exported row must have a non-empty measurement_value (verbatim MIC token) and peptide_sequence when the peptide sequence is identifiable from the parsed tables (C14R: sequence taken from Mildenberger et al. 2024, Pharmaceuticals 17:83).",
   "input_sources": [
     {
       "source_id": "paper_ramata_stunda_2023",
@@ -25,9 +38,14 @@
       "doi": "10.3390/antibiotics12030551",
       "publication_year": 2023,
       "selection_reason": "Open-access CC BY 4.0. Table 1: peptide sequences; Table 2: 11x6 MIC matrix in ug/mL against ESKAPE + C. acnes.",
-      "pages_used": [4, 5],
+      "pages_used": [
+        4,
+        5
+      ],
       "expected_content": "Table 1 (p.4): peptide names and sequences. Table 2 (p.5): MIC in ug/mL for E. coli ATCC 25922, P. aeruginosa ATCC 27853, K. pneumoniae ATCC 700603, E. faecium ATCC 19434, S. aureus ATCC 25923, C. acnes ATCC 6919.",
-      "extraction_methods": ["pdfplumber"],
+      "extraction_methods": [
+        "pdfplumber"
+      ],
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "MHB",
@@ -45,10 +63,15 @@
       "pdf_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11537005/pdf/spectrum.00265-24.pdf",
       "doi": "10.1128/spectrum.00265-24",
       "publication_year": 2024,
-      "selection_reason": "Open-access Microbiology Spectrum. TABLE 1 (p.4): W1–W5 sequences + measured MW. TABLE 2 (p.5): MIC in µM vs MRSA 544 and MRSA 103.",
-      "pages_used": [4, 5],
+      "selection_reason": "Open-access Microbiology Spectrum. TABLE 1 (p.4): W1-W5 sequences + measured MW. TABLE 2 (p.5): MIC in µM vs MRSA 544 and MRSA 103.",
+      "pages_used": [
+        4,
+        5
+      ],
       "expected_content": "Peptide table with lines like 'W1 WRGSGRW-NH2'; MIC table labeled TABLE 2 with MRSA 544/MRSA 103 rows.",
-      "extraction_methods": ["pdfplumber"],
+      "extraction_methods": [
+        "pdfplumber"
+      ],
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "TSB",
@@ -67,9 +90,13 @@
       "doi": "10.3390/pharmaceutics15061752",
       "publication_year": 2023,
       "selection_reason": "Open-access CC BY 4.0. T. ni and H. cecropia cecropin A MIC vs standard and colistin-resistant strains.",
-      "pages_used": [9],
+      "pages_used": [
+        9
+      ],
       "expected_content": "Table 1 (p.5-6): MIC in uM for cecropin peptides vs 8 bacterial strains. Exclude antibiotic control rows.",
-      "extraction_methods": ["pdfplumber"],
+      "extraction_methods": [
+        "pdfplumber"
+      ],
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "MHB",
@@ -77,27 +104,6 @@
         "inoculum_cfu_ml": "2e5",
         "temperature_c": 37,
         "incubation_time_h": 16
-      }
-    },
-    {
-      "source_id": "paper_hu_fmicb_2022_alpha_helix",
-      "pdf_id": "hu_2022_alpha_helical_amp_screen",
-      "pdf_path": "data/raw/pdf/fmicb-13-870361.pdf",
-      "source_url": "https://doi.org/10.3389/fmicb.2022.870361",
-      "pdf_url": "https://www.frontiersin.org/articles/10.3389/fmicb.2022.870361/pdf",
-      "doi": "10.3389/fmicb.2022.870361",
-      "publication_year": 2022,
-      "selection_reason": "Open-access Frontiers in Microbiology. TABLE 1 (p.8): peptides S1–S60 MIC matrix µg/mL vs 10 CMCC strains; sequences in supplementary material.",
-      "pages_used": [8],
-      "expected_content": "Frontiers filenames often match fmicb-13-<article_no>.pdf. TABLE 1 footnote maps columns 1–10 to pathogens.",
-      "extraction_methods": ["pdfplumber"],
-      "assay_conditions": {
-        "assay_method": "broth microdilution",
-        "medium": "Mueller-Hinton Broth",
-        "medium_composition": "MHB beef extract/acid hydrolyzate of casein medium as described for MIC assay",
-        "inoculum_cfu_ml": "5e5",
-        "temperature_c": 37,
-        "incubation_time_h": 18
       }
     },
     {
@@ -109,13 +115,171 @@
       "doi": "10.3390/pr14101630",
       "publication_year": 2026,
       "selection_reason": "Open-access MDPI Processes (2026). Table 3 + Table 4 MIC/MBC grids (µg/mL) for melittin, TT-1, FKW, WKW; sequences in Table 2.",
-      "pages_used": [10, 12, 13],
+      "pages_used": [
+        10,
+        12,
+        13
+      ],
       "expected_content": "Canonical download name often processes-<vol>-01630.pdf. Parser reads Table 3 (S. aureus ATCC 25923 MIC) and Table 4 MIC columns.",
-      "extraction_methods": ["pdfplumber"],
+      "extraction_methods": [
+        "pdfplumber"
+      ],
       "assay_conditions": {
         "assay_method": "broth microdilution",
         "medium": "CAMHB",
         "medium_composition": "cation-adjusted Mueller-Hinton broth; 1% DMSO in assay plates",
+        "inoculum_cfu_ml": "",
+        "temperature_c": 37,
+        "incubation_time_h": 24
+      }
+    },
+    {
+      "source_id": "paper_deepamp_nature_2024",
+      "pdf_id": "deepamp_2024_broad_spectrum_amp",
+      "pdf_path": "data/raw/pdf/s41467-024-51933-2.pdf",
+      "source_url": "https://doi.org/10.1038/s41467-024-51933-2",
+      "pdf_url": "https://www.nature.com/articles/s41467-024-51933-2.pdf",
+      "doi": "10.1038/s41467-024-51933-2",
+      "publication_year": 2024,
+      "selection_reason": "Open-access Nature Comm 2024. Table 1 (p.6): 29 peptides (T1-1..T1-18, T2-1..T2-10, Penetratin) MIC in µg/mL vs E.coli, S.aureus, K.pneumoniae, P.aeruginosa, MRSA.",
+      "pages_used": [
+        6
+      ],
+      "expected_content": "Table 1 with columns: Peptide Sequence E.coli S.aureus K.pneumoniae P.aeruginosa MRSA (each with ±SEM); ~145 records.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MHB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "5e5",
+        "temperature_c": 37,
+        "incubation_time_h": 24
+      }
+    },
+    {
+      "source_id": "paper_ai_amp_curr_microbiol_2025",
+      "pdf_id": "ai_amp_curr_microbiol_2025",
+      "pdf_path": "data/raw/pdf/s00284-025-04346-3.pdf",
+      "source_url": "https://doi.org/10.1007/s00284-025-04346-3",
+      "pdf_url": "https://link.springer.com/article/10.1007/s00284-025-04346-3.pdf",
+      "doi": "10.1007/s00284-025-04346-3",
+      "publication_year": 2025,
+      "selection_reason": "Open-access Curr Microbiol 2025. Table 2 (p.6): 12 AI-designed peptides MIC in µM vs E.coli ATCC25922, K.quasipneumoniae ATCC700603, S.aureus ATCC25923, P.aeruginosa ATCC27853.",
+      "pages_used": [
+        5,
+        6
+      ],
+      "expected_content": "Table 2 with columns C.a E.c K.q S.a P.a (skip C.a Candida); ~48 records bacterial.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MH",
+        "medium_composition": "Mueller-Hinton broth",
+        "inoculum_cfu_ml": "1e6",
+        "temperature_c": 37,
+        "incubation_time_h": 24
+      }
+    },
+    {
+      "source_id": "paper_life_tn_peptides_2025",
+      "pdf_id": "life_tn_peptides_2025",
+      "pdf_path": "data/raw/pdf/life-15-00242.pdf",
+      "source_url": "https://doi.org/10.3390/life15020242",
+      "pdf_url": "https://www.mdpi.com/2075-1729/15/2/242/pdf",
+      "doi": "10.3390/life15020242",
+      "publication_year": 2025,
+      "selection_reason": "Open-access MDPI Life 2025. Table 1 (p.4): 17 TN/D-TN peptides MIC in µg/mL vs S.aureus ATCC29213, E.coli ATCC25922, P.aeruginosa ATCC27853 (skip C.albicans).",
+      "pages_used": [
+        4
+      ],
+      "expected_content": "Table 1 with peptide sequences and MIC values for bacterial strains; ~40 records.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MHB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "1e5",
+        "temperature_c": 37,
+        "incubation_time_h": 18
+      }
+    },
+    {
+      "source_id": "paper_sk_peptides_springer_2025",
+      "pdf_id": "sk_peptides_springer_2025",
+      "pdf_path": "data/raw/pdf/s44337-025-00335-4.pdf",
+      "source_url": "https://doi.org/10.1007/s44337-025-00335-4",
+      "pdf_url": "https://link.springer.com/article/10.1007/s44337-025-00335-4.pdf",
+      "doi": "10.1007/s44337-025-00335-4",
+      "publication_year": 2025,
+      "selection_reason": "Open-access Springer 2025. Table 4 (p.8): 6 SK peptides MIC in µg/mL vs E.coli ATCC8739, S.aureus ATCC6538, K.pneumoniae ATCC700603, P.aeruginosa ATCC9027.",
+      "pages_used": [
+        3,
+        8
+      ],
+      "expected_content": "Table 1 (sequences) on p.3, Table 4 (MIC values) on p.8; ~24 records.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "various",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "1e5",
+        "temperature_c": 37,
+        "incubation_time_h": 18
+      }
+    },
+    {
+      "source_id": "paper_b7_proline_rich_2025",
+      "pdf_id": "b7_proline_rich_antibiotics_2025",
+      "pdf_path": "data/raw/pdf/antibiotics-15-00412.pdf",
+      "source_url": "https://doi.org/10.3390/antibiotics15040412",
+      "pdf_url": "https://www.mdpi.com/2079-6382/15/4/412/pdf",
+      "doi": "10.3390/antibiotics15040412",
+      "publication_year": 2025,
+      "selection_reason": "Open-access Antibiotics 2025. Table 2 (p.3): B7-005/B7-006/B7-007 MIC in µM vs E.coli ATCC25922 and 2 P.aeruginosa strains.",
+      "pages_used": [
+        3
+      ],
+      "expected_content": "Table 1 (sequences) and Table 2 (MIC in µM) for B7-005, B7-006, B7-007 vs 3 reference strains; ~9 records.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "broth microdilution",
+        "medium": "MHB",
+        "medium_composition": "",
+        "inoculum_cfu_ml": "5e5",
+        "temperature_c": 37,
+        "incubation_time_h": 18
+      }
+    },
+    {
+      "source_id": "paper_c14r_eskape_2026",
+      "pdf_id": "c14r_eskape_antibiotics_2026",
+      "pdf_path": "data/raw/pdf/antibiotics-15-00211.pdf",
+      "source_url": "https://doi.org/10.3390/antibiotics15020211",
+      "pdf_url": "https://www.mdpi.com/2079-6382/15/2/211/pdf",
+      "doi": "10.3390/antibiotics15020211",
+      "publication_year": 2026,
+      "selection_reason": "Open-access Antibiotics 2026. Table 1 (p.4): C14R MIC in µg/mL vs 6 ESKAPE pathogens (MDR strains).",
+      "pages_used": [
+        4
+      ],
+      "expected_content": "Table 1: E.faecium VRE, S.aureus MRSA, K.quasipneumoniae ESBL, A.baumannii, P.aeruginosa, E.coli ESBL; ~6 records.",
+      "extraction_methods": [
+        "pdfplumber"
+      ],
+      "assay_conditions": {
+        "assay_method": "resazurin viability assay",
+        "medium": "CAMHB",
+        "medium_composition": "Mueller-Hinton broth, Gompertz-fit MIC",
         "inoculum_cfu_ml": "",
         "temperature_c": 37,
         "incubation_time_h": 24

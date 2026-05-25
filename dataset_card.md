@@ -51,7 +51,7 @@ _Removed compared to schema v0.7:_ `synthesis_type`, `gram_stain`, `measurement_
 
 ## Data sources
 
-Defined in `specs/source_map.json` (v1.8.1):
+Defined in `specs/source_map.json` (v1.8.2):
 
 | source_id | Type | Records | License |
 |-----------|------|---------|---------|

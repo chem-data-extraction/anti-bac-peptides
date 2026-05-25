@@ -12,7 +12,7 @@ Filters: open access, papers ~2020–2026, broth microdilution, common pathogens
 
 ## Source groups
 
-All sources are in `specs/source_map.json` (version 1.8.1).
+All sources are in `specs/source_map.json` (version 1.8.2).
 
 ### databases
 

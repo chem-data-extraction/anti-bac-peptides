@@ -43,11 +43,11 @@ Each record captures (when available): peptide **sequence** and name, organism o
 
 ## Data sources
 
-Defined in `specs/source_map.json` (version 1.8.1):
+Defined in `specs/source_map.json` (version 1.8.2):
 
 | Source | Type | Records |
 |--------|------|---------|
-| DRAMP (`Antimicrobial.xlsx` from DRAMP 4.0 activity downloads) | Database | ~999 |
+| DRAMP (`Antimicrobial.xlsx`; upstream `Antimicrobial_amps.xlsx`) | Database | ~999 |
 | DBAASP (REST API) | Database | ~90 |
 | Ramata-Stunda et al. 2023 | Paper | 66 |
 | deepAMP, Nature Comm 2024 | Paper | 150 |

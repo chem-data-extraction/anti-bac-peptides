@@ -341,7 +341,7 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     return rows, "web_api"
 
 
-# --- DRAMP: local workbook (Antimicrobial.xlsx preferred; Target_Organism free text with `(MIC …)` ) ---
+# --- DRAMP: Antimicrobial workbook (`Antimicrobial.xlsx`; upstream Antimicrobial_amps); Target_Organism `(MIC …)` ---
 MIC_IN_PARENS = re.compile(r"\(\s*MIC\b\s*([^)]+)\)", re.IGNORECASE)
 
 def _split_mic_numeric_and_unit(fragment: str) -> tuple[str, str]:
@@ -445,7 +445,8 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
         print(f"  [DRAMP] Missing workbook {path.relative_to(ROOT)} — skipping.")
         return [], "missing_file"
 
-    sheet = page.get("sheet_name") or "general_amps"
+    sheet_raw = page.get("sheet_name")
+    sheet = 0 if sheet_raw is None else sheet_raw
     source_id = page["source_id"]
     source_base = page.get("url", "https://dramp.cpu-bioinfor.org").rstrip("/")
     doi = page.get("doi", "10.1093/nar/gkae1008")

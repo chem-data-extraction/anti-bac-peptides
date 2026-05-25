@@ -1,7 +1,7 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.8.1",
+  "source_map_version": "1.8.2",
   "source_groups": {
     "databases": [
       {
@@ -37,7 +37,7 @@
         "url": "https://dramp.cpu-bioinfor.org",
         "doi": "10.1093/nar/gkae1008",
         "access_status": "open_access",
-        "access_method": "Bulk Excel `Antimicrobial.xlsx` (DRAMP 4.0 download by activity—not the bundled general workbook) placed at `data/raw/web/Antimicrobial.xlsx`; sheet `general_amps` unless overridden in specs/web_extraction_manifest.json (same DRAMP columns: DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID).",
+        "access_method": "Bulk antimicrobial activity Excel from DRAMP (`Antimicrobial_amps.xlsx` on the official downloads page) saved as `data/raw/web/Antimicrobial.xlsx`. Columns align with DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID. Sheet selection for extraction is configured in `specs/web_extraction_manifest.json`.",
         "access_date": "2026-05-24",
         "license": "CC BY 4.0 (see DRAMP site)",
         "expected_data_volume": "high",

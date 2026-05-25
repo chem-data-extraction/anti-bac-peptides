@@ -59,7 +59,7 @@ All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic u
 
 ### Web extraction (`scripts/extract_web.py`, Practice 4)
 
-- **DRAMP:** local Excel workbook (`data/raw/web/Antimicrobial.xlsx`, DRAMP 4.0 activity-classified bulk file—not the general dataset); 1 000 records extracted; `Target_Organism` field parsed with MIC-in-parentheses regex; leading lab codes (`L\d+`) stripped from pathogen names
+- **DRAMP:** antimicrobial activity workbook from DRAMP bulk downloads (`data/raw/web/Antimicrobial.xlsx`, upstream `Antimicrobial_amps.xlsx`); MIC rows parsed from `Target_Organism` `(MIC …)` segments; lab-code prefixes trimmed from organism names where present
 - **DBAASP:** REST API (`dbaasp.org/peptides`); 1 000 records fetched with `seen_pids` deduplication; filtered to bacterial targets and MIC measurements
 
 ---
@@ -113,7 +113,7 @@ Required fields enforced by validation: `record_id`, `peptide_sequence`, `pathog
 |----------|------|
 | Processed dataset | `data/processed/dataset.csv` |
 | Schema (v0.8.0) | `specs/dataset_schema.json` |
-| Source map (v1.8.1) | `specs/source_map.json` |
+| Source map (v1.8.2) | `specs/source_map.json` |
 | PDF manifest (v1.6.0) | `specs/pdf_extraction_manifest.json` |
 | Web manifest | `specs/web_extraction_manifest.json` |
 | Dataset card | `dataset_card.md` |

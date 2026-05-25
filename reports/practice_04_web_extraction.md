@@ -14,7 +14,7 @@ CAMPR4 (`db_campr4`) was tested but **removed** — HTML crawl gave only ~12 MIC
 ## Why these sites were selected
 
 - **DBAASP** has structured peptide cards with MIC per bacterial target (`targetActivities[]`).
-- **DRAMP** provides a bulk Excel export by activity class (`Antimicrobial.xlsx` on the DRAMP 4.0 downloads page); we use this instead of the general AMP workbook bundle.
+- **DRAMP** bulk antimicrobial peptide table (`Antimicrobial_amps.xlsx` → stored as `Antimicrobial.xlsx` in `data/raw/web/`).
 
 Both are open access and complement PDF extraction with large structured datasets.
 
@@ -22,7 +22,7 @@ Both are open access and complement PDF extraction with large structured dataset
 
 **DBAASP:** REST JSON API. Paginated peptide list; each card has `sequence`, `name`, and `targetActivities[]` with concentration, unit, target species, and medium metadata. No HTML parsing needed.
 
-**DRAMP:** Excel workbook `Antimicrobial.xlsx`, typically worksheet `general_amps` (configurable via manifest). Columns include `DRAMP_ID`, `Sequence`, `Name`, `Activity`, `Target_Organism`, `Pubmed_ID`. MIC values are embedded in free-text `Target_Organism` fields as `(MIC …)` clauses.
+**DRAMP:** Excel workbook `Antimicrobial.xlsx`. Columns include `DRAMP_ID`, `Sequence`, `Name`, `Activity`, `Target_Organism`, `Pubmed_ID`. MIC values are embedded in `Target_Organism` as `(MIC …)` clauses.
 
 ## Extraction methods
 

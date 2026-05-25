@@ -7,7 +7,7 @@ Store **unaltered** source files here. Do not edit files in this folder after do
 | Subfolder | Contents |
 |-----------|----------|
 | `pdf/` | Original PDF papers and supplementary files referenced in `specs/pdf_extraction_manifest.json` |
-| `web/` | HTML snapshots, saved pages, database exports referenced in `specs/web_extraction_manifest.json`. For DRAMP, place **`Antimicrobial.xlsx`** (DRAMP 4.0 activity download) here, or symlink/rename after download. |
+| `web/` | HTML snapshots, API JSON responses, DRAMP antimicrobial export (**`Antimicrobial.xlsx`**, from site file `Antimicrobial_amps.xlsx`) referenced in `specs/web_extraction_manifest.json`. |
 | `external/` | Third-party CSV, ZIP, or database exports (with license notes in `specs/source_map.json`) |
 
 ## What does not belong here

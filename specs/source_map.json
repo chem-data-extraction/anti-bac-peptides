@@ -1,7 +1,7 @@
 {
   "topic": "Antibacterial peptide MIC measurements",
   "root_query": "antimicrobial peptide antibacterial MIC minimum inhibitory concentration broth microdilution experimental",
-  "source_map_version": "1.8.2",
+  "source_map_version": "1.8.3",
   "source_groups": {
     "databases": [
       {
@@ -15,7 +15,7 @@
         "access_date": "2026-05-24",
         "license": "free for academic use",
         "expected_data_volume": "high",
-        "estimated_records": 1000,
+        "estimated_records": 974,
         "available_data_types": ["structured_records", "sequences", "activity_values", "assay_conditions"],
         "expected_fields": [
           "peptide_sequence", "peptide_name", "organism_source",
@@ -28,7 +28,7 @@
           "tool": "scripts/extract_web.py → fetch_dbaasp",
           "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor exports non-empty `peptide_sequence` (skipped if missing), required verbatim MIC text (`measurement_value`), and canonical `measurement_unit` labels (see scripts/utils.py)."
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor emits non-empty `peptide_sequence` when present, MIC concentration text normalized with `verbatim_measurement_value` (commas→dots), and canonical `measurement_unit`; `clean_dataset.py` then coerces `measurement_value` to numeric scalars in `data/processed/dataset.csv`."
       },
       {
         "source_id": "db_dramp",
@@ -41,7 +41,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0 (see DRAMP site)",
         "expected_data_volume": "high",
-        "estimated_records": 1000,
+        "estimated_records": 999,
         "available_data_types": ["excel", "activity_narratives"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {

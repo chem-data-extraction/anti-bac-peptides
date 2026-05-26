@@ -11,9 +11,10 @@ url: "https://github.com/chem-data-extraction/anti-bac-peptides"
 version: 0.5.0
 date-released: 2026-05-25
 abstract: >
-  Curated tabular collection of 1 521 experimentally reported minimum inhibitory
+  Curated tabular collection of 2406 experimentally reported minimum inhibitory
   concentration (MIC) values for antibacterial peptides against bacterial pathogens.
   Integrates records from DRAMP, DBAASP, and ten open-access papers (2023–2026).
+  Final CSV stores MIC as numeric scalars after cleaning; raw extracts preserve richer MIC text.
 keywords:
   - antibacterial peptides
   - antimicrobial peptides

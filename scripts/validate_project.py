@@ -27,6 +27,8 @@ REQUIRED_FILES = [
 ]
 
 CONFIDENCE_ALLOWED = {"", "high", "medium", "low", "unknown"}
+MEASUREMENT_UNITS_ALLOWED = frozenset({"ug/mL", "uM", "nM", "ng/mL", "mg/L", "pmol/ml", "AU/μg"})
+SOURCE_TYPES_ALLOWED = frozenset({"scientific_paper", "database", "web_page", "unknown"})
 
 
 def load_json(path: Path) -> dict:
@@ -121,6 +123,28 @@ def check_measurement_value(df: pd.DataFrame) -> list[str]:
     return issues
 
 
+def check_measurement_unit(df: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if "measurement_unit" not in df.columns:
+        return warnings
+    for val in df["measurement_unit"].dropna().astype(str).unique():
+        stripped = val.strip()
+        if stripped and stripped not in MEASUREMENT_UNITS_ALLOWED:
+            warnings.append(f"measurement_unit not in canonical allow-list: {stripped!r}")
+    return warnings
+
+
+def check_source_type(df: pd.DataFrame) -> list[str]:
+    warnings: list[str] = []
+    if "source_type" not in df.columns:
+        return warnings
+    for val in df["source_type"].dropna().astype(str).unique():
+        stripped = val.strip()
+        if stripped and stripped not in SOURCE_TYPES_ALLOWED:
+            warnings.append(f"source_type not in schema allow-list: {stripped!r}")
+    return warnings
+
+
 def check_extraction_confidence(df: pd.DataFrame) -> list[str]:
     warnings = []
     if "extraction_confidence" not in df.columns:
@@ -156,6 +180,8 @@ def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
     errors.extend(src_errors)
     warnings.extend(src_warnings)
     warnings.extend(check_extraction_confidence(df))
+    warnings.extend(check_measurement_unit(df))
+    warnings.extend(check_source_type(df))
 
     return errors, warnings
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.8.0",
+  "schema_version": "0.8.1",
   "dataset_title": "Antibacterial peptide MIC dataset",
   "fields": [
     {
@@ -48,11 +48,11 @@
     },
     {
       "name": "measurement_value",
-      "type": "string",
+      "type": "number",
       "required": true,
-      "description": "Required verbatim MIC as reported in the source — plain number, censored bound (e.g. >128), range text, etc. Stored with minimal rewriting so symbols and wording stay visible.",
-      "example": ">8",
-      "normalization_rule": "Prefer the exact source string (strip whitespace). Do not drop censored bounds or ranges for cleaning."
+      "description": "MIC as a numeric scalar after ``scripts/clean_dataset.py``: leading/trailing censored symbols (>,<,≤,≥) stripped, hyphen ranges collapsed to the higher endpoint, and ± tails truncated to the main value. Intermediate CSV extracts under ``data/extracted/`` preserve richer verbatim tokens until cleaning.",
+      "example": "8",
+      "normalization_rule": "Float-parseable scalar in the finalized ``dataset.csv``; see ``scripts/utils.py`` ``coerce_mic_measurement_to_scalar_string`` for coercion rules applied during cleaning."
     },
     {
       "name": "measurement_unit",

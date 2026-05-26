@@ -488,9 +488,6 @@ DEEPAMP_PATHOGENS: list[tuple[str, str]] = [
     ("Pseudomonas aeruginosa", "laboratory strain"),
     ("Staphylococcus aureus", "MRSA"),
 ]
-_DEEPAMP_COL_LABELS = ("E.coli", "S.aureus", "K.pneumoniae", "P.aeruginosa", "MRSA")
-
-
 def parse_deepamp_text(page_texts: dict[int, str], source: dict) -> list[dict]:
     """Li et al. 2024 Nature Comm — Table 1 deepAMP peptides MIC (µg/mL) vs 5 organisms."""
     source_id = source["source_id"]

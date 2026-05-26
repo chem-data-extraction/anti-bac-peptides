@@ -4,9 +4,9 @@ This folder holds the **publication-ready** dataset: one row per record, columns
 
 ## Main file
 
-- `dataset.csv` — final dataset produced by `scripts/build_dataset.py` and `scripts/clean_dataset.py`, validated with `scripts/validate_project.py`
+- `dataset.csv` — written by **`scripts/clean_dataset.py`** (after `scripts/build_dataset.py` produces `data/interim/merged_records.csv`), validated with `scripts/validate_project.py`.
 
 ## Guidelines
 
 - Regenerate this file from scripts; do not hand-edit.
-- Dataset version **0.5.0** (commit `bfdfee3`) is recorded in `reports/final_report.md` and `dataset_card.md`.
+- Dataset version **0.5.0** is recorded in `project.json`; refresh counts in `README.md` / `dataset_card.md` when you regenerate `dataset.csv`.

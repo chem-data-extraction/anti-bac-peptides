@@ -16,7 +16,7 @@ Walk through each step in `specs/cleaning_pipeline.json`:
 
 1. **merge_sources** — concatenate PDF and web CSVs (`scripts/build_dataset.py` → `data/interim/merged_records.csv`).
 2. **drop_non_bacterial_pathogens** — remove yeast/fungal/virus/mammalian rows (`scripts/utils.py`).
-3. **canonical_measurement_units** — canonicalize `measurement_unit`; keep required `measurement_value` verbatim.
+3. **canonical_measurement_units** — canonicalize `measurement_unit`; coerce required `measurement_value` to numeric scalars for `dataset.csv`.
 4. **standardize_sequences** — uppercase `peptide_sequence`, strip invalid characters.
 5. **standardize_missing_values** — map `NA`, `N/A`, `-`, empty strings to null for nullable string columns.
 6. **require_peptide_sequence** — drop rows with empty `peptide_sequence` after normalization (required field).
@@ -26,7 +26,7 @@ Walk through each step in `specs/cleaning_pipeline.json`:
 
 ## Normalization rules
 
-- **MIC values:** required field `measurement_value`; stored verbatim (`>128`, ranges, censored bounds). No unit conversion. Rows with empty MIC are dropped before export.
+- **MIC values:** required field `measurement_value`; **extract/interim tables keep richer tokens;** finalized `dataset.csv` stores float-parseable scalars. No unit conversion (µM ↔ µg/mL). Rows with empty MIC are dropped before export.
 - **MIC units:** canonical labels via `scripts/utils.py` (`ug/mL`, `uM`, `ng/mL`, `mg/L`, `pmol/ml`).
 - **Sequences:** uppercase; spaces and hyphens removed; required non-empty peptide sequence after this step or row is discarded.
 - **Inoculum:** kept as string (e.g. `5e5`), not converted to float.
@@ -46,18 +46,18 @@ $ pytest tests/test_required_artifacts.py
 (all tests passed)
 ```
 
-Warnings: 7 rows with non-canonical unit `AU/μg` (DRAMP); suspicious pathogen names in some DRAMP rows.
+Notes: Seven DRAMP rows keep `AU/μg`; the label is allow-listed (`scripts/validate_project.py`). Some DRAMP `pathogen_name` strings bundle inhibition summaries from the workbook.
 
 ## Final dataset description
 
 | Metric | Value |
 |--------|-------|
-| Row count | 1521 |
+| Row count | 2406 |
 | Path | `data/processed/dataset.csv` |
 | Built | 2026-05-25 |
 | PDF sources | 10 (`paper_*` in source map) |
 | Web sources | 2 (`db_dbaasp`, `db_dramp`) |
-| Top contributors | DRAMP (~999), deepAMP paper (~150), DBAASP (~89) |
+| Top contributors | DRAMP (999), DBAASP (974), deepAMP paper (150) |
 
 ## Publication readiness checklist
 

@@ -49,7 +49,7 @@ Dependencies: `requests`, `pandas`, `openpyxl`.
 | Target species (+ strain split) | `pathogen_name`, `pathogen_strain` |
 | MIC text + unit | `measurement_value` (required), `measurement_unit` |
 
-MIC numbers stay verbatim (including `>200`); `measurement_value` must be non-empty on every exported row. Units are canonicalized via `scripts/utils.py`.
+Extracted web rows keep comparison symbols and DRAMP quirks in `measurement_value` until cleaning. **`clean_dataset.py` coerces processed `measurement_value` to numeric scalars.** It must be non-empty on every exported web row. Units are canonicalized via `scripts/utils.py`.
 
 ## Extraction problems
 

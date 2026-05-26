@@ -2,15 +2,15 @@
 
 ## Dataset title
 
-Antibacterial peptide MIC dataset (v0.5.0, commit `bfdfee3`)
+Antibacterial peptide MIC dataset (v0.5.0; regenerate `data/processed/dataset.csv` with the pipeline scripts — do not rely on a pinned commit hash in docs)
 
 ## Dataset summary
 
 Curated tabular collection of experimentally reported minimum inhibitory concentration (MIC) values for antibacterial peptides against bacterial pathogens. Each row represents one MIC measurement of one peptide against one pathogen from a specific source. The dataset integrates records from two curated databases (DRAMP, DBAASP) and ten peer-reviewed papers published between 2023 and 2026.
 
-Every row retains the **verbatim** MIC (`measurement_value`) and normalized unit label (`measurement_unit`). This release stores **MIC-only** antibacterial measurements; peptide sequence is mandatory on each row after extraction and cleaning.
+In `data/extracted/*.csv`, MIC text is kept close to the source (commas normalized). The publication file `data/processed/dataset.csv` stores **`measurement_value` as a numeric scalar** (`clean_dataset.py`): comparison symbols stripped, ranges mapped to the upper endpoint, ± split. Normalized unit label: `measurement_unit`. This release stores **MIC-only** antibacterial measurements; peptide sequence is mandatory on each row after extraction and cleaning.
 
-**1 521 records · 18 fields · 12 sources**
+**2 406 records · 18 fields · 12 sources**
 
 ## Scientific task
 
@@ -22,7 +22,7 @@ One row = one experimentally reported MIC measurement for one antibacterial pept
 
 ## Schema (18 fields)
 
-Defined in `specs/dataset_schema.json` (v0.8.0).
+Defined in `specs/dataset_schema.json` (v0.8.1).
 
 **Required fields:** `record_id`, `peptide_sequence`, `pathogen_name`, `measurement_value`, `source_id`.
 
@@ -34,7 +34,7 @@ Defined in `specs/dataset_schema.json` (v0.8.0).
 | `organism_source` | Biological origin of the peptide |
 | `pathogen_name` | Species name of tested bacterium |
 | `pathogen_strain` | Strain designation (ATCC, MRSA, etc.) |
-| `measurement_value` | **Required.** Verbatim reported MIC value (e.g. `4.0`, `>64`) |
+| `measurement_value` | **Required.** Numeric MIC scalar in `dataset.csv` after cleaning (extracts carry richer text until `clean_dataset.py`) |
 | `measurement_unit` | Canonical unit (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`) |
 | `assay_method` | Assay protocol (e.g. `broth microdilution`) |
 | `medium` | Growth medium (e.g. `MHB`, `LB`) |
@@ -51,12 +51,12 @@ _Removed compared to schema v0.7:_ `synthesis_type`, `gram_stain`, `measurement_
 
 ## Data sources
 
-Defined in `specs/source_map.json` (v1.8.2):
+Defined in `specs/source_map.json` (v1.8.3):
 
 | source_id | Type | Records | License |
 |-----------|------|---------|---------|
-| `db_dramp` | Database | ~999 | CC-BY |
-| `db_dbaasp` | Database | ~89 | Free academic use |
+| `db_dramp` | Database | 999 | CC-BY |
+| `db_dbaasp` | Database | 974 | Free academic use |
 | Other paper IDs | Papers | varies | CC-BY or publisher OA terms |
 
 See `specs/source_map.json` for the full inventory of 12 `source_id` values.
@@ -73,7 +73,7 @@ See `specs/source_map.json` for the full inventory of 12 `source_id` values.
 
 `scripts/clean_dataset.py` applies:
 - Sequence normalization (uppercase standard amino acids only)
-- MIC unit canonicalization (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`)
+- **`measurement_value` → numeric scalar string** (`coerce_mic_measurement_to_scalar_string` in `scripts/utils.py`); MIC unit canonicalization (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`; `AU/μg` kept when sourced)
 - `publication_year` cast to integer
 - Non-bacterial row removal (fungal, viral, mammalian targets)
 - **Rows without `peptide_sequence` after normalization are dropped**
@@ -90,23 +90,23 @@ Validation checks include:
 - Column alignment with schema
 - `record_id` uniqueness and non-null
 - **`peptide_sequence` non-null** (required on every finalized row)
-- `measurement_value` non-null (verbatim MIC token)
+- `measurement_value` non-null numeric (float-parseable after cleaning)
 - `source_id` against source map
-- Enum validation for `measurement_unit` (canonical set) and `source_type`
+- Allow-list warnings for non-empty `measurement_unit` and `source_type` (`scripts/validate_project.py`)
 
 ## Data quality summary
 
 | Metric | Value |
 |--------|-------|
 | Non-canonical `measurement_unit` | 7 rows (`AU/μg` from DRAMP) |
-| Duplicate rows removed (fingerprint dedup) | ~913 |
+| Rows dropped merging → processed | **28** (filters + dedup; see `clean_dataset.py` output) |
 
 ## Known limitations
 
 - DRAMP records lack `publication_year` (~72 % of rows have no year).
 - 7 DRAMP rows carry `AU/μg` (activity units) which are not concentration-comparable.
 - DRAMP pathogen name field occasionally contains inhibition-percentage strings (source data artifact).
-- MIC values are verbatim strings (censored bounds `>64` retained); numeric comparison requires parsing.
+- MIC in **`dataset.csv`** is a **numeric scalar**; censored/range wording from literature lives in extracts or pathogen narratives, not reliably in `measurement_value`.
 
 ## Recommended use
 

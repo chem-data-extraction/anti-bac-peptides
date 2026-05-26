@@ -11,7 +11,6 @@ PDF_CSV = ROOT / "data/extracted/pdf_extracted_records.csv"
 WEB_CSV = ROOT / "data/extracted/web_extracted_records.csv"
 SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
 MERGED_PATH = ROOT / "data/interim/merged_records.csv"
-DATASET_PATH = ROOT / "data/processed/dataset.csv"
 
 
 def load_schema_columns() -> list[str]:

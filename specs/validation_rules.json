@@ -1,5 +1,5 @@
 {
-  "validation_version": "0.1.4",
+  "validation_version": "0.1.5",
   "rules": [
     {
       "rule_id": "files_exist_core",
@@ -58,11 +58,25 @@
       "description": "Dataset columns must match field names in specs/dataset_schema.json."
     },
     {
+      "rule_id": "measurement_unit_canonical_labels",
+      "target": "measurement_unit",
+      "rule_type": "enum_optional",
+      "severity": "warning",
+      "description": "Non-empty measurement_unit labels should belong to the canonical set (scripts/validate_project.py MEASUREMENT_UNITS_ALLOWED)."
+    },
+    {
+      "rule_id": "source_type_allow_list",
+      "target": "source_type",
+      "rule_type": "enum_optional",
+      "severity": "warning",
+      "description": "Non-empty source_type values should match schema allowed_values (scripts/validate_project.py SOURCE_TYPES_ALLOWED)."
+    },
+    {
       "rule_id": "measurement_value_not_null",
       "target": "measurement_value",
       "rule_type": "not_null",
       "severity": "error",
-      "description": "Every row must have a non-empty measurement_value (verbatim MIC token: number, censored bound, or range text)."
+      "description": "Every row must have a non-empty, float-parseable measurement_value after cleaning (numeric MIC scalar)."
     }
   ]
 }

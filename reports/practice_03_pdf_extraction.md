@@ -60,7 +60,7 @@ If a PDF is missing or parsing yields no rows, the script logs an empty extracti
 | Assay block in paper | `assay_method`, `medium`, `inoculum_cfu_ml`, … |
 | DOI / URL | `source_url`, `doi`, `source_id` |
 
-MIC values are stored verbatim in `measurement_value` (required on every row); units are canonicalized via `scripts/utils.py`. Rows without a MIC token are not exported.
+MIC values are emitted as **text tokens** in `pdf_extracted_records.csv` (`verbatim_measurement_value`). After `scripts/clean_dataset.py`, `data/processed/dataset.csv` carries **numeric MIC scalars**. Units are canonicalized via `scripts/utils.py`. Rows without a MIC token are not exported.
 
 ## Extraction problems
 

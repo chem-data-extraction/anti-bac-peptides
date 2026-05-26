@@ -1,6 +1,7 @@
 """Shared helpers for extract / build / clean / validate pipelines.
 
-MIC unit normalization + verbatim value handling for extractors and ``clean_dataset``,
+MIC unit normalization, extractor-side verbatim/string helpers,
+``coerce_mic_measurement_to_scalar_string`` for ``clean_dataset``,
 plus pathogen substring hints for extraction filters and validation warnings.
 """
 

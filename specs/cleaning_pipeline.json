@@ -1,5 +1,5 @@
 {
-  "pipeline_version": "0.8.0",
+  "pipeline_version": "0.8.1",
   "inputs": [
     "data/extracted/pdf_extracted_records.csv",
     "data/extracted/web_extracted_records.csv"
@@ -40,7 +40,7 @@
     {
       "step_id": "standardize_missing_values",
       "operation": "missing_value_cleanup",
-      "description": "Map NA, N/A, -, empty strings to null-like values for nullable string columns; preserve verbatim MIC tokens and normalized peptide_sequence.",
+      "description": "Map NA, N/A, -, empty strings to null-like values for nullable string columns (MIC coercion already applied earlier; peptide_sequence retains normalized residues only).",
       "fields": [
         "peptide_name", "organism_source", "pathogen_strain", "assay_method",
         "medium", "source_type", "source_url", "doi"

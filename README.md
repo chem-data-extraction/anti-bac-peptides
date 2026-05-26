@@ -10,13 +10,13 @@ Collect MIC measurements of antibacterial peptides from peer-reviewed literature
 
 One **record** = one experimentally reported MIC value of one antibacterial peptide against one bacterial pathogen from a specific source (one row in `data/processed/dataset.csv`).
 
-Each record captures (when available): peptide **sequence** and name, organism origin of the peptide, pathogen species and strain, verbatim MIC value and normalized unit; assay fields (`assay_method`, `medium`, inoculum, temperature, incubation time); provenance (`source_id`, URLs, DOI, publication year).
+Each record captures (when available): peptide **sequence** and name, organism origin of the peptide, pathogen species and strain, **MIC as a numeric scalar** (after cleaning) and normalized unit; assay fields (`assay_method`, `medium`, inoculum, temperature, incubation time); provenance (`source_id`, URLs, DOI, publication year). Raw MIC text from papers/DBs is preserved through `data/extracted/*.csv` until `scripts/clean_dataset.py` applies scalar coercion.
 
 ## Dataset at a glance
 
 | Metric | Value |
 |--------|-------|
-| Rows | **1 521** |
+| Rows | **2 406** |
 | Unique sources | 12 (2 databases + 10 papers) |
 | Schema fields | **18** (see `specs/dataset_schema.json`) |
 | Required columns | `record_id`, **`peptide_sequence`**, `pathogen_name`, `measurement_value`, `source_id` |
@@ -43,12 +43,12 @@ Each record captures (when available): peptide **sequence** and name, organism o
 
 ## Data sources
 
-Defined in `specs/source_map.json` (version 1.8.2):
+Defined in `specs/source_map.json` (version 1.8.3):
 
-| Source | Type | Records |
-|--------|------|---------|
-| DRAMP (`Antimicrobial.xlsx`; upstream `Antimicrobial_amps.xlsx`) | Database | ~999 |
-| DBAASP (REST API) | Database | ~89 |
+| Source | Type | Records (processed) |
+|--------|------|----------------------|
+| DRAMP (`Antimicrobial.xlsx`; upstream `Antimicrobial_amps.xlsx`) | Database | 999 |
+| DBAASP (REST API) | Database | 974 |
 | Ramata-Stunda et al. 2023 | Paper | 66 |
 | deepAMP, Nature Comm 2024 | Paper | 150 |
 | AI-designed AMPs, Curr Microbiol 2025 | Paper | 76 |
@@ -89,9 +89,9 @@ pytest
 
 ## Measurement values
 
-`measurement_value` is a **required** field: every row must carry the MIC as reported in the source. Values are stored **verbatim** (e.g. `4.0`, `>64`, `≤2`). Units are normalized to canonical labels in `measurement_unit` via `scripts/utils.py` (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`). No automatic µM → µg/mL conversion is performed.
+`measurement_value` is **required** on every row. **`data/extracted/*.csv`** retains MIC text largely as parsed (commas normalized, light cleanup). **`data/processed/dataset.csv`** stores a **float-parseable scalar**: `scripts/clean_dataset.py` strips leading/trailing comparison symbols (`>`, `<`, `≤`, `≥`), collapses `a–b` ranges to the higher endpoint, and takes the main segment before `±` (see `coerce_mic_measurement_to_scalar_string` in `scripts/utils.py`). Units are normalized to canonical labels in `measurement_unit` via `canonical_measurement_unit` (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`, plus `AU/μg` where the source reports activity units). No automatic µM → µg/mL conversion is performed.
 
-See `specs/dataset_schema.json` for required fields and full field list (`peptide_sequence` is required).
+See `specs/dataset_schema.json` for required fields and the full field list (`peptide_sequence` is required).
 
 ## Known limitations
 

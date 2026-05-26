@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import csv
 import json
-import re
 import sys
 import time
 import unicodedata
@@ -215,7 +214,6 @@ def _try_import(name: str) -> Any | None:
         return importlib.import_module(name)
     except ImportError:
         return None
-
 
 
 

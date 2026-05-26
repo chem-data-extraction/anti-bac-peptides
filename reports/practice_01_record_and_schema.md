@@ -48,7 +48,7 @@ Full field definitions are in `specs/dataset_schema.json`. Summary:
 ## Ambiguous cases
 
 - Same peptide, different strains → separate records.
-- MIC as a range or censored value (`4-8`, `>128`) → keep original text in `measurement_value`.
+- MIC as a range or censored value (`4-8`, `>128`) → preserve in extracted/interim CSVs where possible; **`data/processed/dataset.csv` stores numeric scalars** after Practice 5 cleaning (`coerce_mic_measurement_to_scalar_string`).
 - Different units (µg/mL vs µM) → do not convert; store canonical unit in `measurement_unit`.
 - Same measurement in a paper and a database → two rows with different `source_id`; deduplicate in Practice 5.
 - No sequence in the source → row cannot appear in `dataset.csv`; either obtain sequence from supplementary references or omit the measurement.

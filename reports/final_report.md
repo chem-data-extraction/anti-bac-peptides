@@ -1,7 +1,7 @@
 # Final report — Antibacterial peptide MIC dataset
 
 **Version:** 0.5.0  
-**Commit:** `bfdfee3`  
+**Documentation tip:** regenerate `data/processed/dataset.csv` via the scripted pipeline rather than pinning narrative to a historic commit.  
 **Date:** 2026-05-25  
 **Status:** Complete
 
@@ -11,7 +11,7 @@
 
 This project built a structured, reproducible dataset of experimentally reported **minimum inhibitory concentration (MIC)** values for antibacterial peptides against bacterial pathogens. The dataset integrates records from two curated databases (DRAMP, DBAASP) and ten open-access peer-reviewed papers published between 2023 and 2026.
 
-**Final dataset:** `data/processed/dataset.csv` — **1 521 rows × 18 columns**.
+**Final dataset:** `data/processed/dataset.csv` — **2 406 rows × 18 columns** (counts after merge, cleaning, deduplication; see pipeline scripts).
 
 ---
 
@@ -28,7 +28,7 @@ This project built a structured, reproducible dataset of experimentally reported
 | Source group | Source ID | Type | Records |
 |-------------|-----------|------|---------|
 | Database | `db_dramp` | DRAMP bulk `Antimicrobial.xlsx` | 999 |
-| Database | `db_dbaasp` | DBAASP REST API | 89 |
+| Database | `db_dbaasp` | DBAASP REST API | 974 |
 | Paper | `paper_deepamp_nature_2024` | Nature Comm 2024 | 150 |
 | Paper | `paper_ai_amp_curr_microbiol_2025` | Curr Microbiol 2025 | 76 |
 | Paper | `paper_ramata_stunda_2023` | Antibiotics 2023 | 66 |
@@ -40,7 +40,7 @@ This project built a structured, reproducible dataset of experimentally reported
 | Paper | `paper_b7_proline_rich_2025` | Antibiotics 2025 | 6 |
 | Paper | `paper_c14r_eskape_2026` | Antibiotics 2026 | 6 |
 
-**Total:** 12 sources, 1 521 records after deduplication.
+**Total:** 12 sources, **2 406** records after merge, cleaning filters, and deduplication (`data/processed/dataset.csv`).
 
 All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic use.
 
@@ -61,7 +61,7 @@ All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic u
 ### Web extraction (`scripts/extract_web.py`, Practice 4)
 
 - **DRAMP:** antimicrobial activity workbook from DRAMP bulk downloads (`data/raw/web/Antimicrobial.xlsx`, upstream `Antimicrobial_amps.xlsx`); MIC rows parsed from `Target_Organism` `(MIC …)` segments; lab-code prefixes trimmed from organism names where present
-- **DBAASP:** REST API (`dbaasp.org/peptides`); 1 000 records fetched with `seen_pids` deduplication; filtered to bacterial targets and MIC measurements
+- **DBAASP:** REST JSON peptide cards (`dbaasp.org/peptides/{id}`) via numeric ID walk; bacterial MIC rows only; capped per `specs/web_extraction_manifest.json` (`max_records_per_source`). Extracted MIC text is normalized into numeric scalars in the processed dataset (`clean_dataset.py`).
 
 ---
 
@@ -73,28 +73,17 @@ All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic u
 | Sequence normalization | Upper-case; only standard amino-acid letters; removed gaps |
 | Missing peptide sequence | Rows with empty `peptide_sequence` after normalization are **dropped** (required schema field) |
 | Unit canonicalization | `μg/ml` → `ug/mL`; `μmol/L` → `uM`; `mg/ml` → `mg/L` etc. via `utils.canonical_measurement_unit()` |
-| `publication_year` cast | Converted to `pd.Int64Dtype()` — no more `2023.0` floats |
-| Deduplication | Content-fingerprint deduplication removed **913 duplicate rows** |
+| MIC scalar coercion | `measurement_value` → float-parseable scalar via `utils.coerce_mic_measurement_to_scalar_string()` (comparison symbols stripped; ranges → upper endpoint; see `scripts/clean_dataset.py`) |
+| `publication_year` cast | Converted to `pd.Int64Dtype()` |
+| Dedup / drop | Filters + fingerprint dedupe + duplicate `record_id` handling reduce **2434 merged → 2406 cleaned** rows in the current artifact |
 
 ---
 
 ## Validation summary
 
-Run `python scripts/validate_project.py` — **passes** with 2 informational warnings:
+Run `python scripts/validate_project.py` — **passes** on the bundled `dataset.csv` (fatal checks: required files present, dataset columns ↔ schema alignment, distinct `record_id`, numeric `measurement_value`, non-null mandatory fields). Supplemental warnings may appear for unseen allow-list deviations in `measurement_unit` / `source_type`.
 
-```
-WARNING: Non-canonical measurement_unit values (7 rows): {'AU/μg': 7}
-WARNING: Suspicious pathogen_name patterns (digit/##/lab-code prefix): ...18 rows...
-Validation passed.
-(2 warning(s))
-```
-
-- `AU/μg` — 7 DRAMP records use activity units; cannot be converted to concentration; retained as-is
-- Suspicious pathogen names — DRAMP source artifact (inhibition-percentage prefixes in ~18 rows); not fixable without manual curation of the upstream workbook
-
-Required fields enforced by validation: `record_id`, `peptide_sequence`, `pathogen_name`, `measurement_value`, `source_id`.
-
-`pytest` passes all tests in `tests/test_required_artifacts.py`.
+`pytest` runs `tests/test_required_artifacts.py`, `tests/test_extract_web_helpers.py`, etc., when present.
 
 ---
 
@@ -103,7 +92,7 @@ Required fields enforced by validation: `record_id`, `peptide_sequence`, `pathog
 1. **Publication year:** ~72 % of rows (from DRAMP) have no `publication_year`; DRAMP workbook does not include year fields per record.
 2. **Activity units:** 7 rows carry `AU/μg`, incompatible with µg/mL or µM comparison.
 3. **DBAASP dependency:** Live network access to `dbaasp.org` required for DBAASP re-extraction.
-4. **Verbatim MIC values:** Censored bounds (`>64`, `≤2`) are stored as-is; numeric aggregation requires additional parsing.
+4. **Processed MIC semantics:** **`data/processed/dataset.csv`** stores **numeric MIC scalars** after cleaning; censored/range tokens from the literature are not preserved in `measurement_value`. Richer text remains in `data/extracted/*.csv` until `clean_dataset.py` runs.
 5. **No unit conversion:** μg/mL and µM are stored separately; cross-unit comparison requires molecular weight of each peptide.
 
 ---
@@ -113,8 +102,8 @@ Required fields enforced by validation: `record_id`, `peptide_sequence`, `pathog
 | Artifact | Path |
 |----------|------|
 | Processed dataset | `data/processed/dataset.csv` |
-| Schema (v0.8.0) | `specs/dataset_schema.json` |
-| Source map (v1.8.2) | `specs/source_map.json` |
+| Schema (v0.8.1) | `specs/dataset_schema.json` |
+| Source map (v1.8.3) | `specs/source_map.json` |
 | PDF manifest (v1.6.0) | `specs/pdf_extraction_manifest.json` |
 | Web manifest | `specs/web_extraction_manifest.json` |
 | Dataset card | `dataset_card.md` |

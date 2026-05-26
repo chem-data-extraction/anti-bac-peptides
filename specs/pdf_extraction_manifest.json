@@ -2,7 +2,7 @@
   "pdf_extraction_version": "1.6.0",
   "pdf_extraction_process": "Extract antibacterial peptide MIC records from open-access PDFs via pdfplumber text/table parsing driven by scripts/extract_pdf.py.",
   "output_records_file": "data/extracted/pdf_extracted_records.csv",
-  "schema_version": "0.8.0",
+  "schema_version": "0.8.1",
   "max_records_per_source": 1000,
   "output_columns": [
     "record_id",
@@ -27,7 +27,7 @@
     "extraction_confidence",
     "notes"
   ],
-  "extraction_note": "Place PDF files in data/raw/pdf/ exactly as pdf_path names in input_sources below. Implemented parsers register in TEXT_PARSERS inside scripts/extract_pdf.py. Every exported row must have a non-empty measurement_value (verbatim MIC token) and peptide_sequence when the peptide sequence is identifiable from the parsed tables (C14R: sequence taken from Mildenberger et al. 2024, Pharmaceuticals 17:83).",
+  "extraction_note": "Place PDF files in data/raw/pdf/ exactly as pdf_path names in input_sources below. Implemented parsers register in TEXT_PARSERS inside scripts/extract_pdf.py. Every exported row must have a non-empty measurement_value (MIC text from the paper, lightly normalized) and peptide_sequence when the peptide sequence is identifiable from the parsed tables (C14R: sequence taken from Mildenberger et al. 2024, Pharmaceuticals 17:83). Final `data/processed/dataset.csv` stores float-parseable MIC scalars after scripts/clean_dataset.py.",
   "input_sources": [
     {
       "source_id": "paper_ramata_stunda_2023",

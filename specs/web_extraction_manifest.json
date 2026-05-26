@@ -2,8 +2,7 @@
   "web_extraction_version": "2.4.0",
   "output_records_file": "data/extracted/web_extracted_records.csv",
   "script": "scripts/extract_web.py",
-  "schema_version": "0.8.0",
-  "max_records_per_source": 1000,
+  "schema_version": "0.8.1",
   "output_columns": [
     "record_id", "peptide_sequence",
     "peptide_name", "organism_source",
@@ -43,11 +42,11 @@
           "articles[].year": "publication_year"
         },
         "filter": "Monomers only; MIC activity measure; bacterial targets.",
-        "notes": "verbatim MIC text; canonical units via scripts/utils.py only."
+        "notes": "MIC concentration text through extraction; canonical units via scripts/utils.py. clean_dataset coerces measurement_value to numeric scalars in data/processed/dataset.csv."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
       "snapshot_note": "ID-walk run summary (ids_attempted, cards_fetched, rows_written) or legacy list page index.",
-      "extraction_status": "pending"
+      "extraction_status": "complete"
     },
     {
       "source_id": "db_dramp",
@@ -66,7 +65,7 @@
         "filter": "Activity contains Antibacterial; Target_Organism must contain `(MIC …)` clauses parseable by shared regex helpers.",
         "extraction_confidence_default": "medium"
       },
-      "extraction_status": "pending"
+      "extraction_status": "complete"
     }
   ]
 }

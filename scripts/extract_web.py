@@ -91,11 +91,111 @@ OUTPUT_CSV = ROOT / "data/extracted/web_extracted_records.csv"
 LOG_PATH = ROOT / "data/extracted/extraction_log.jsonl"
 
 DBAASP_PEPTIDES_URL = "https://dbaasp.org/peptides"
+DBAASP_PEPTIDE_PAGE_BASE = "https://dbaasp.org/peptide"
 RATE_LIMIT_S = 1.0
+
+STRAIN_CATALOGUE_PREFIXES = (
+    "ATCC",
+    "DSMZ",
+    "CCUG",
+    "NCTC",
+    "NCIMB",
+    "KCTC",
+    "CIP",
+    "CECT",
+    "LMG",
+    "JCM",
+    "BAA",
+    "MRSA",
+    "VRE",
+    "ESBL",
+    "MDR",
+    "CRKP",
+    "CRE",
+    "KPC",
+    "PAO1",
+)
+_STRAIN_PREFIX_GROUP = "|".join(STRAIN_CATALOGUE_PREFIXES)
 
 
 def is_bacterial_target(species_name: str) -> bool:
     return not pathogen_contains_nonbacterial_hint(species_name)
+
+
+def pubmed_url(pmid: object) -> str:
+    digits = re.sub(r"\D", "", str(pmid or "").strip())
+    return f"https://pubmed.ncbi.nlm.nih.gov/{digits}/" if digits else ""
+
+
+def extract_year_from_reference(reference: object) -> str:
+    match = re.search(r"\b(19|20)\d{2}\b", str(reference or ""))
+    return match.group(0) if match else ""
+
+
+def extract_doi_from_text(text: object) -> str:
+    match = re.search(r"10\.\d{4,9}/[^\s,;)]+", str(text or ""))
+    return match.group(0).rstrip(".") if match else ""
+
+
+def dbaasp_card_source_url(card: dict) -> str:
+    token = card.get("dbaaspId") or card.get("id") or ""
+    if token:
+        return f"{DBAASP_PEPTIDE_PAGE_BASE}/{token}"
+    return DBAASP_PEPTIDES_URL
+
+
+def index_dbaasp_articles(articles: list[dict] | None) -> dict[str, dict]:
+    """Map DBAASP article ``id`` strings to article dicts."""
+    indexed: dict[str, dict] = {}
+    for article in articles or []:
+        if isinstance(article, dict) and article.get("id") is not None:
+            indexed[str(article["id"])] = article
+    return indexed
+
+
+def resolve_activity_publication(
+    act: dict, articles: list[dict] | None, articles_by_id: dict[str, dict]
+) -> tuple[str, str]:
+    """Return (publication_year, pubmed_id) for one DBAASP targetActivity.
+
+    ``targetActivities[].reference`` is a **1-based index** into ``articles[]``,
+    not the article ``id`` field (e.g. reference ``"1"`` → ``articles[0]``).
+    """
+    article_list = [a for a in (articles or []) if isinstance(a, dict)]
+    ref_raw = act.get("reference")
+    article: dict | None = None
+
+    if ref_raw not in (None, ""):
+        ref_text = str(ref_raw).strip()
+        try:
+            ref_idx = int(ref_text)
+            if 1 <= ref_idx <= len(article_list):
+                article = article_list[ref_idx - 1]
+        except (TypeError, ValueError):
+            article = articles_by_id.get(ref_text)
+
+    if not article:
+        return "", ""
+
+    year_raw = article.get("year")
+    publication_year = ""
+    if year_raw not in (None, ""):
+        try:
+            publication_year = str(int(year_raw))
+        except (TypeError, ValueError):
+            publication_year = str(year_raw).strip()
+
+    pubmed_obj = article.get("pubmed") or {}
+    pmid = ""
+    if isinstance(pubmed_obj, dict):
+        pmid = str(pubmed_obj.get("pubmedId") or "").strip()
+    return publication_year, pmid
+
+
+def dbaasp_card_is_monomer(card: dict) -> bool:
+    complexity = card.get("complexity") or {}
+    cname = complexity.get("name", "") if isinstance(complexity, dict) else str(complexity or "")
+    return not cname or cname.lower() == "monomer"
 
 
 def append_log(entry: dict) -> None:
@@ -134,15 +234,21 @@ def split_pathogen_strain(species_reported: str) -> tuple[str, str]:
     # Strip DRAMP-style Gram-stain markers (##Gram-positive / ##Gram-negative)
     s = re.sub(r"##\s*Gram[- ](positive|negative)\b", "", s, flags=re.IGNORECASE).strip()
 
-    # Split on known catalogue prefixes
-    m = re.search(
-        r"^(.*?)\s+((?:ATCC|DSMZ|CCUG|NCTC|MRSA|VRE|ESBL|MDR|CRKP|CRE|KPC)\s*(?:#\s*)?[\w./\-]+)\s*$",
-        s,
-        re.IGNORECASE,
+    # Split on known catalogue / strain designation prefixes (ATCC, KCTC, PAO1, …).
+    catalogue_re = (
+        rf"^(.*?)\s+((?:{_STRAIN_PREFIX_GROUP})\s*(?:#\s*)?[\w./\-]+)\s*$"
     )
+    m = re.search(catalogue_re, s, re.IGNORECASE)
     if m:
         base, strain = m.group(1).strip(), m.group(2).strip()
         return (base, strain) if base else (strain, "")
+
+    # Standalone PAO1 without catalogue number suffix.
+    m_pao1 = re.search(r"^(.*?)\s+(PAO1)\s*$", s, re.IGNORECASE)
+    if m_pao1:
+        base, strain = m_pao1.group(1).strip(), m_pao1.group(2).strip()
+        if base:
+            return base, strain
 
     # DRAMP laboratory code pattern: word ending with L\d+ or L-\d+ (e.g. ``Escherichia coli L287``)
     m2 = re.search(
@@ -173,6 +279,8 @@ def format_inoculum_cfu(act: dict) -> str:
 def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: int) -> list[dict]:
     seq = normalize_sequence(card.get("sequence", ""))
     name = card.get("name") or card.get("majorName") or card.get("dbaaspId") or ""
+    peptide_page_url = dbaasp_card_source_url(card)
+    articles_by_id = index_dbaasp_articles(card.get("articles"))
 
     organism = ""
     genes = card.get("sourceGenes") or []
@@ -214,6 +322,15 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
 
         idx = idx_start + len(rows) + 1
         una = unit_context_note(unit)
+        publication_year, pmid = resolve_activity_publication(
+            act, card.get("articles"), articles_by_id
+        )
+        row_source_url = pubmed_url(pmid) or peptide_page_url or source_url
+        note_parts = [
+            f"DBAASP peptide card; dbaaspId={card.get('dbaaspId', '')}",
+            f"PMID={pmid}" if pmid else "",
+            una,
+        ]
         rows.append({
             "record_id": (
                 f"rec_{slugify(str(name))[:12]}_{slug_path}"
@@ -233,29 +350,130 @@ def parse_dbaasp_card(card: dict, source_id: str, source_url: str, idx_start: in
             "incubation_time_h": "",
             "source_id": source_id,
             "source_type": "database",
-            "publication_year": "",
-            "source_url": source_url,
+            "publication_year": publication_year,
+            "source_url": row_source_url,
             "doi": "",
             "extraction_method": "web_api",
             "extraction_confidence": "high",
-            "notes": f"DBAASP /peptides/{{id}}; dbaaspId={card.get('dbaaspId', '')}; {una}".strip("; "),
+            "notes": "; ".join(part for part in note_parts if part),
         })
     return rows
 
 
-def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
-    requests = _try_import("requests")
-    if requests is None:
-        print("  [DBAASP] requests not installed — skipping.")
-        return [], "missing_dependency"
+def _dbaasp_probe_total_count(requests: Any, headers: dict[str, str]) -> int:
+    resp = requests.get(
+        DBAASP_PEPTIDES_URL,
+        params={"page": 0, "size": 1, "format": "json"},
+        headers=headers,
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    try:
+        return max(0, int(data.get("totalCount") or 0))
+    except (TypeError, ValueError):
+        return 0
 
-    snap_path = ROOT / page["raw_snapshot_path"]
-    source_id = page["source_id"]
-    source_url = page.get("url", DBAASP_PEPTIDES_URL)
-    headers = {"Accept": "application/json", "User-Agent": "AMP-MIC-Dataset/1.0 (academic)"}
 
+def _dbaasp_fetch_card(requests: Any, pid: int, headers: dict[str, str]) -> dict | None:
+    try:
+        card_resp = requests.get(
+            f"{DBAASP_PEPTIDES_URL}/{pid}",
+            params={"format": "json"},
+            headers=headers,
+            timeout=60,
+        )
+        if card_resp.status_code == 400:
+            return None
+        card_resp.raise_for_status()
+        card = card_resp.json()
+    except Exception as exc:
+        print(f"  [DBAASP] Card {pid} error: {exc}")
+        return None
+    return card if isinstance(card, dict) else None
+
+
+def _fetch_dbaasp_by_id_walk(
+    page: dict,
+    record_cap: int | None,
+    requests: Any,
+    headers: dict[str, str],
+    source_id: str,
+) -> tuple[list[dict], list[dict]]:
+    """Walk numeric peptide IDs — list pagination on dbaasp.org returns duplicate pages."""
+    id_start_raw = page.get("dbaasp_id_start", 1)
+    try:
+        id_start = max(1, int(id_start_raw))
+    except (TypeError, ValueError):
+        id_start = 1
+
+    id_end_raw = page.get("dbaasp_max_peptide_id")
+    if id_end_raw is None:
+        print("  [DBAASP] Probing totalCount for ID walk upper bound …")
+        time.sleep(RATE_LIMIT_S)
+        id_end = _dbaasp_probe_total_count(requests, headers)
+    else:
+        try:
+            id_end = max(id_start, int(id_end_raw))
+        except (TypeError, ValueError):
+            id_end = _dbaasp_probe_total_count(requests, headers)
+
+    if id_end <= 0:
+        id_end = 25069
+
+    fallback_url = page.get("url", DBAASP_PEPTIDES_URL)
     rows: list[dict] = []
-    seen_pids: set = set()
+    snapshot: list[dict] = [{
+        "ingest_mode": "id_walk",
+        "id_start": id_start,
+        "id_end": id_end,
+        "ids_attempted": 0,
+        "cards_fetched": 0,
+        "cards_with_sequence": 0,
+        "rows_written": 0,
+    }]
+
+    print(f"  [DBAASP] ID walk {id_start}…{id_end} (cap={record_cap if record_cap is not None else 'unlimited'})")
+
+    for pid in range(id_start, id_end + 1):
+        if record_cap is not None and len(rows) >= record_cap:
+            rows = rows[:record_cap]
+            break
+
+        snapshot[0]["ids_attempted"] = int(snapshot[0]["ids_attempted"]) + 1
+        if pid == id_start or pid % 500 == 0:
+            print(f"  [DBAASP] ID {pid}/{id_end} … rows so far: {len(rows)}")
+
+        time.sleep(RATE_LIMIT_S)
+        card = _dbaasp_fetch_card(requests, pid, headers)
+        if not card:
+            continue
+
+        snapshot[0]["cards_fetched"] = int(snapshot[0]["cards_fetched"]) + 1
+        if not dbaasp_card_is_monomer(card):
+            continue
+        if not card.get("sequence"):
+            continue
+
+        snapshot[0]["cards_with_sequence"] = int(snapshot[0]["cards_with_sequence"]) + 1
+        parsed = parse_dbaasp_card(card, source_id, fallback_url, len(rows))
+        rows.extend(parsed)
+        snapshot[0]["rows_written"] = len(rows)
+
+    return rows, snapshot
+
+
+def _fetch_dbaasp_by_list_pages(
+    page: dict,
+    record_cap: int | None,
+    requests: Any,
+    headers: dict[str, str],
+    source_id: str,
+) -> tuple[list[dict], list[dict]]:
+    """Legacy list pagination (known broken on dbaasp.org — kept for manifest compatibility)."""
+    fallback_url = page.get("url", DBAASP_PEPTIDES_URL)
+    rows: list[dict] = []
+    seen_pids: set[int] = set()
     snapshot_pages: list[dict] = []
     page_num = 0
     page_size = 50
@@ -269,8 +487,7 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     while True:
         if page_num >= max_pages:
             break
-        hit_cap = record_cap is not None and len(rows) >= record_cap
-        if hit_cap:
+        if record_cap is not None and len(rows) >= record_cap:
             break
 
         print(f"  [DBAASP] GET /peptides?page={page_num}&size={page_size}")
@@ -288,44 +505,31 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
             print(f"  [DBAASP] List error on page {page_num}: {exc}")
             break
 
-        snapshot_pages.append({"page": page_num, "totalCount": data.get("totalCount"), "count": len(data.get("data", []))})
+        snapshot_pages.append({
+            "ingest_mode": "list_pages",
+            "page": page_num,
+            "totalCount": data.get("totalCount"),
+            "count": len(data.get("data", [])),
+        })
         peptides = data.get("data") or []
         if not peptides:
             break
 
         for summary in peptides:
-            hit_cap_inner = record_cap is not None and len(rows) >= record_cap
-            if hit_cap_inner:
+            if record_cap is not None and len(rows) >= record_cap:
                 break
             pid = summary.get("id")
-            complexity = summary.get("complexity") or {}
-            cname = complexity.get("name", "") if isinstance(complexity, dict) else ""
-            if cname and cname.lower() != "monomer":
+            if not dbaasp_card_is_monomer(summary):
                 continue
-            if not pid:
-                continue
-            if pid in seen_pids:
+            if not pid or pid in seen_pids:
                 continue
             seen_pids.add(pid)
 
-            time.sleep(RATE_LIMIT_S)
-            try:
-                card_resp = requests.get(
-                    f"{DBAASP_PEPTIDES_URL}/{pid}",
-                    params={"format": "json"},
-                    headers=headers,
-                    timeout=60,
-                )
-                card_resp.raise_for_status()
-                card = card_resp.json()
-            except Exception as exc:
-                print(f"  [DBAASP] Card {pid} error: {exc}")
+            card = _dbaasp_fetch_card(requests, int(pid), headers)
+            if not card or not card.get("sequence"):
                 continue
 
-            if not card.get("sequence"):
-                continue
-
-            parsed = parse_dbaasp_card(card, source_id, source_url, len(rows))
+            parsed = parse_dbaasp_card(card, source_id, fallback_url, len(rows))
             rows.extend(parsed)
             if record_cap is not None and len(rows) >= record_cap:
                 rows = rows[:record_cap]
@@ -333,10 +537,28 @@ def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
 
         if record_cap is not None and len(rows) >= record_cap:
             break
-
         page_num += 1
 
-    save_snapshot(snap_path, json.dumps(snapshot_pages, ensure_ascii=False).encode("utf-8"))
+    return rows, snapshot_pages
+
+
+def fetch_dbaasp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
+    requests = _try_import("requests")
+    if requests is None:
+        print("  [DBAASP] requests not installed — skipping.")
+        return [], "missing_dependency"
+
+    snap_path = ROOT / page["raw_snapshot_path"]
+    source_id = page["source_id"]
+    headers = {"Accept": "application/json", "User-Agent": "AMP-MIC-Dataset/1.0 (academic)"}
+
+    ingest_mode = str(page.get("dbaasp_ingest_mode", "id_walk")).strip().lower()
+    if ingest_mode == "list_pages":
+        rows, snapshot = _fetch_dbaasp_by_list_pages(page, record_cap, requests, headers, source_id)
+    else:
+        rows, snapshot = _fetch_dbaasp_by_id_walk(page, record_cap, requests, headers, source_id)
+
+    save_snapshot(snap_path, json.dumps(snapshot, ensure_ascii=False).encode("utf-8"))
     print(f"  [DBAASP] Parsed {len(rows)} MIC record(s); snapshot: {snap_path.relative_to(ROOT)}")
     return rows, "web_api"
 
@@ -449,7 +671,7 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
     sheet = 0 if sheet_raw is None else sheet_raw
     source_id = page["source_id"]
     source_base = page.get("url", "https://dramp.cpu-bioinfor.org").rstrip("/")
-    doi = page.get("doi", "10.1093/nar/gkae1008")
+    database_doi = page.get("doi", "10.1093/nar/gkae1008")
 
     df = pd_local.read_excel(path, sheet_name=sheet)
 
@@ -468,6 +690,11 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
         peptide_name = str(r.get("Name") or "").strip()
         organism_source = str(r.get("Source") or "").strip()
         dramp_id = str(r.get("DRAMP_ID") or "").strip()
+        reference = str(r.get("Reference") or "").strip()
+        publication_year = extract_year_from_reference(reference)
+        pmid = re.sub(r"\D", "", str(r.get("Pubmed_ID") or "").strip())
+        row_source_url = pubmed_url(pmid) if pmid else source_base
+        row_doi = extract_doi_from_text(reference)
 
         segments = iter_dramp_target_mic_rows(tgt)
         if not segments:
@@ -486,10 +713,13 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
             mv = vv
             if not mv:
                 continue
-            notes = (
-                f"DRAMP row {dramp_id}; Target_Organism segment; PMID={str(r.get('Pubmed_ID') or '').strip()} "
-                f"{unit_context_note(unit_raw_hint)}"
-            ).strip()
+            note_parts = [
+                f"DRAMP row {dramp_id}",
+                f"PMID={pmid}" if pmid else "",
+                f"DRAMP_db_doi={database_doi}",
+                unit_context_note(unit_raw_hint),
+            ]
+            notes = "; ".join(part for part in note_parts if part)
             rows.append(
                 {
                     "record_id": f"rec_dramp_{slugify(dramp_id)[:14]}_{slug_path}_{idx:04d}",
@@ -507,9 +737,9 @@ def fetch_dramp(page: dict, record_cap: int | None) -> tuple[list[dict], str]:
                     "incubation_time_h": "",
                     "source_id": source_id,
                     "source_type": "database",
-                    "publication_year": "",
-                    "source_url": source_base,
-                    "doi": doi,
+                    "publication_year": publication_year,
+                    "source_url": row_source_url,
+                    "doi": row_doi,
                     "extraction_method": "local_bulk_xlsx",
                     "extraction_confidence": "medium",
                     "notes": notes,

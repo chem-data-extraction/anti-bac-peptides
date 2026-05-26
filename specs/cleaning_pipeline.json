@@ -26,7 +26,7 @@
     {
       "step_id": "canonical_measurement_units",
       "operation": "string_cleanup",
-      "description": "Canonicalize measurement_unit labels; preserve required measurement_value as verbatim MIC text (non-empty on every exported row).",
+      "description": "Canonicalize measurement_unit labels; coerce measurement_value to a numeric scalar string (strip comparison symbols; ranges → max endpoint; ± → main component).",
       "fields": ["measurement_value", "measurement_unit"],
       "output_file": "data/interim/merged_records.csv"
     },

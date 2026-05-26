@@ -59,6 +59,58 @@ def verbatim_measurement_value(raw: object) -> str:
     return "" if str(s).upper() in ("NA", "N/A", "-", "") else s.replace(",", ".").replace("−", "-")
 
 
+_PLUS_MINUS_SPLIT = re.compile(r"(?:±|\u00b1|\s*\+\s*/\s*-\s*)", re.IGNORECASE)
+_LEADING_COMPARISON = re.compile(r"^[<>=≤≥≈~\s\u2264\u2265]+")
+_TRAILING_COMPARISON = re.compile(r"[<>=≤≥≈~\s]+$")
+# Two decimal tokens separated by a hyphen / minus / dash (not unary minus on the LHS).
+_MIC_RANGE = re.compile(
+    r"""^\s*
+        (?P<a>[0-9]+(?:\.[0-9]+)?|[0-9]*\.[0-9]+)
+        \s*[-−–—]\s*
+        (?P<b>[0-9]+(?:\.[0-9]+)?|[0-9]*\.[0-9]+)
+        \s*$""",
+    re.VERBOSE,
+)
+
+
+def _strip_comparison_decorators(token: str) -> str:
+    prev = ""
+    s = token
+    while prev != s:
+        prev = s
+        s = _LEADING_COMPARISON.sub("", s)
+        s = _TRAILING_COMPARISON.sub("", s)
+    return s.strip()
+
+
+def coerce_mic_measurement_to_scalar_string(raw: object) -> str | None:
+    """Turn MIC text into one float-compatible string.
+
+    Rules: drop leading/trailing comparison symbols (> < = ≤ ≥ ≈ ~);
+    split on ± / +/- and keep the main (left) part;
+    for a-b ranges take max(a, b); lone numbers become str(float(..)).
+    Returns None if nothing coherent remains."""
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    if not text or str(text).upper() in ("NA", "N/A", "-", "NAN"):
+        return None
+    text = text.replace(",", ".").replace("−", "-")
+    head = _PLUS_MINUS_SPLIT.split(text, maxsplit=1)[0].strip()
+    head = _strip_comparison_decorators(head)
+    if not head:
+        return None
+    rng = _MIC_RANGE.match(head)
+    if rng is not None:
+        a_v = float(rng.group("a"))
+        b_v = float(rng.group("b"))
+        return str(max(a_v, b_v))
+    try:
+        return str(float(head))
+    except ValueError:
+        return None
+
+
 NONBACTERIAL_PATHOGEN_SUBSTRINGS: tuple[str, ...] = (
     "aspergillus",
     "blastomyces",

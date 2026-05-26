@@ -11,7 +11,7 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from utils import canonical_measurement_unit, pathogen_contains_nonbacterial_hint
+from utils import canonical_measurement_unit, coerce_mic_measurement_to_scalar_string, pathogen_contains_nonbacterial_hint
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,13 +53,13 @@ def parse_numeric_measurement(value: object) -> float | None:
 
 
 def normalize_verbatim_mic(value: object) -> str | None:
-    """Keep MIC as reported (digits, censored bounds, ranges); blank only for placeholders."""
+    """Normalize MIC to a scalar float string: strip ><≤≥, ± tail, collapse ranges to max."""
     if pd.isna(value) or value is None:
         return None
     text = str(value).strip()
     if not text or text.lower() in MISSING_TOKENS:
         return None
-    return text
+    return coerce_mic_measurement_to_scalar_string(text)
 
 
 def normalize_measurement_unit(value: object) -> str | None:

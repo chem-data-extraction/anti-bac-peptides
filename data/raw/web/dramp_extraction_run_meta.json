@@ -2,8 +2,5 @@
   "workbook_relative": "data/raw/web/Antimicrobial.xlsx",
   "sheet": 0,
   "rows_written": 1000,
-  "rows_in_final_dataset": 999,
-  "rows_dropped_in_cleaning": 1,
-  "note": "One DRAMP row removed during cleaning (non-bacterial pathogen or empty sequence after normalization).",
   "workbook_mtime": "2026-05-25T21:15:01Z"
 }

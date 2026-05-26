@@ -1,5 +1,5 @@
 {
-  "web_extraction_version": "2.3.0",
+  "web_extraction_version": "2.4.0",
   "output_records_file": "data/extracted/web_extracted_records.csv",
   "script": "scripts/extract_web.py",
   "schema_version": "0.8.0",
@@ -14,34 +14,40 @@
     "source_id", "source_type", "publication_year", "source_url", "doi",
     "extraction_method", "extraction_confidence", "notes"
   ],
-  "extraction_note": "Two ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards; (2) DRAMP antimicrobial-activity bulk Excel at `data/raw/web/Antimicrobial.xlsx` (official site file `Antimicrobial_amps.xlsx`; Target_Organism `(MIC …)` parsing). Dependencies: requests, pandas, openpyxl. Many DRAMP rows overlap primary literature/DBAASP — deduplicate at merge/clean if needed. Per-source caps: max_records and source-specific keys below. Every exported row must have non-empty peptide_sequence and measurement_value (verbatim MIC token).",
+  "extraction_note": "Two ingestion paths in extract_web.py: (1) DBAASP REST JSON peptide cards via numeric ID walk (list pagination on dbaasp.org returns duplicate pages); (2) DRAMP antimicrobial-activity bulk Excel. DBAASP rows map publication_year from articles[], source_url from PubMed when PMID is linked, else peptide card URL. DRAMP rows map publication_year from Reference, source_url from Pubmed_ID, doi from Reference when present. Dependencies: requests, pandas, openpyxl.",
   "input_pages": [
     {
       "source_id": "db_dbaasp",
       "page_id": "dbaasp_peptide_cards",
       "url": "https://dbaasp.org/peptides",
       "max_records": 1000,
-      "dbaasp_max_list_pages": 80,
+      "dbaasp_ingest_mode": "id_walk",
+      "dbaasp_id_start": 1,
+      "dbaasp_max_peptide_id": 1500,
+      "dbaasp_max_list_pages": 100,
       "access_date": "2026-05-24",
       "access_status": "open_access",
       "license": "free for academic use",
-      "robots_notes": "Public JSON at https://dbaasp.org/peptides?page=&size=. Throttle ≥1 req/s (script default).",
+      "robots_notes": "Card JSON at GET /peptides/{id}?format=json. ID walk probes totalCount once; throttle ≥1 req/s. Legacy list_pages mode kept but known broken (duplicate pages).",
       "selection_reason": "Primary structured MIC per peptide–target with medium/inoculum when available.",
       "page_type": "rest_api_json",
       "parser_plan": {
-        "tool": "requests GET /peptides list + GET /peptides/{id} cards",
+        "tool": "requests GET /peptides/{id} cards (id_walk)",
         "field_mapping": {
           "sequence": "peptide_sequence",
           "name": "peptide_name",
           "targetActivities[].concentration": "measurement_value",
-          "targetActivities[].unit": "measurement_unit"
+          "targetActivities[].unit": "measurement_unit",
+          "targetActivities[].medium": "medium",
+          "targetActivities[].cfu": "inoculum_cfu_ml",
+          "articles[].year": "publication_year"
         },
         "filter": "Monomers only; MIC activity measure; bacterial targets.",
         "notes": "verbatim MIC text; canonical units via scripts/utils.py only."
       },
       "raw_snapshot_path": "data/raw/web/dbaasp_antibacterial_search.json",
-      "snapshot_note": "Pagination index only (page, totalCount, count per API list request); full peptide cards are fetched at extraction time and written to web_extracted_records.csv.",
-      "extraction_status": "completed"
+      "snapshot_note": "ID-walk run summary (ids_attempted, cards_fetched, rows_written) or legacy list page index.",
+      "extraction_status": "pending"
     },
     {
       "source_id": "db_dramp",
@@ -53,14 +59,14 @@
       "local_workbook_path": "data/raw/web/Antimicrobial.xlsx",
       "sheet_name": 0,
       "access_method": "Download `Antimicrobial_amps.xlsx` from DRAMP 4.0 bulk downloads (https://dramp.cpu-bioinfor.org/downloads/; legacy path segment `DRAMP3.0_new` in the direct URL). Save unchanged copy as local_workbook_path `data/raw/web/Antimicrobial.xlsx`. Columns include DRAMP_ID, Sequence, Name, Source, Activity, Target_Organism, Pubmed_ID.",
-      "notes": "Substantial overlap with DBAASP/literature is expected — use source_id + sequence + pathogen when deduplicating.",
+      "notes": "publication_year parsed from Reference; source_url from Pubmed_ID; row doi from Reference when present (database DOI kept in notes).",
       "raw_snapshot_path": "data/raw/web/dramp_extraction_run_meta.json",
       "parser_plan": {
         "tool": "pandas.read_excel",
         "filter": "Activity contains Antibacterial; Target_Organism must contain `(MIC …)` clauses parseable by shared regex helpers.",
         "extraction_confidence_default": "medium"
       },
-      "extraction_status": "completed"
+      "extraction_status": "pending"
     }
   ]
 }

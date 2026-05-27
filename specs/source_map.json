@@ -28,7 +28,7 @@
           "tool": "scripts/extract_web.py → fetch_dbaasp",
           "notes": "Walker ingests monomer peptides only (see manifest). MIC rows originate from peptide card `targetActivities[]` filtered to MIC measurements and bacterial pathogens."
         },
-        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor emits non-empty `peptide_sequence` when present, MIC concentration text normalized with `verbatim_measurement_value` (commas→dots), and canonical `measurement_unit`; `clean_dataset.py` then coerces `measurement_value` to numeric scalars in `data/processed/dataset.csv`."
+        "notes": "Primary programmatic web source wired in specs/web_extraction_manifest.json (`db_dbaasp`). Extractor emits non-empty `peptide_sequence` when present, MIC concentration text normalized with `verbatim_measurement_value` (commas→dots), and canonical `measurement_unit`; `clean_dataset.py` then coerces `measurement_value` to numeric scalars in `data/processed/dataset.csv`. Manifest `max_records=1000`; 974 rows remain in the final dataset after bacterial-pathogen filtering, MIC normalization, and deduplication."
       },
       {
         "source_id": "db_dramp",
@@ -90,7 +90,7 @@
         "access_date": "2026-05-24",
         "license": "Open-access publisher terms — confirm on article landing page.",
         "expected_data_volume": "medium",
-        "estimated_records": 40,
+        "estimated_records": 10,
         "available_data_types": ["tables", "figures", "text"],
         "expected_fields": [
           "peptide_sequence", "peptide_name",
@@ -116,7 +116,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
         "expected_data_volume": "low",
-        "estimated_records": 40,
+        "estimated_records": 16,
         "available_data_types": ["tables", "text", "supplementary"],
         "expected_fields": [
           "peptide_sequence", "peptide_name", "organism_source",
@@ -142,7 +142,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
         "expected_data_volume": "medium",
-        "estimated_records": 80,
+        "estimated_records": 34,
         "available_data_types": ["tables", "text"],
         "expected_fields": ["peptide_name", "pathogen_name", "peptide_sequence", "measurement_value"],
         "extraction_strategy": {
@@ -164,7 +164,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY-NC-ND 4.0",
         "expected_data_volume": "high",
-        "estimated_records": 145,
+        "estimated_records": 150,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {
@@ -186,7 +186,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
         "expected_data_volume": "medium",
-        "estimated_records": 48,
+        "estimated_records": 76,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {
@@ -208,7 +208,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
         "expected_data_volume": "medium",
-        "estimated_records": 40,
+        "estimated_records": 45,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {
@@ -230,7 +230,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY-NC-ND 4.0",
         "expected_data_volume": "low",
-        "estimated_records": 24,
+        "estimated_records": 19,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {
@@ -252,7 +252,7 @@
         "access_date": "2026-05-24",
         "license": "CC BY 4.0",
         "expected_data_volume": "low",
-        "estimated_records": 9,
+        "estimated_records": 6,
         "available_data_types": ["tables"],
         "expected_fields": ["peptide_sequence", "peptide_name", "pathogen_name", "measurement_value", "measurement_unit"],
         "extraction_strategy": {

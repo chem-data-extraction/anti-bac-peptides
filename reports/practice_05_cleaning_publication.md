@@ -52,7 +52,7 @@ Notes: Seven DRAMP rows keep `AU/μg`; the label is allow-listed (`scripts/valid
 
 | Metric | Value |
 |--------|-------|
-| Row count | 2406 |
+| Row count | 2401 |
 | Path | `data/processed/dataset.csv` |
 | Built | 2026-05-25 |
 | PDF sources | 10 (`paper_*` in source map) |

@@ -11,7 +11,7 @@
 
 This project built a structured, reproducible dataset of experimentally reported **minimum inhibitory concentration (MIC)** values for antibacterial peptides against bacterial pathogens. The dataset integrates records from two curated databases (DRAMP, DBAASP) and ten open-access peer-reviewed papers published between 2023 and 2026.
 
-**Final dataset:** `data/processed/dataset.csv` — **2 406 rows × 18 columns** (counts after merge, cleaning, deduplication; see pipeline scripts).
+**Final dataset:** `data/processed/dataset.csv` — **2 401 rows × 18 columns** (counts after merge, cleaning, deduplication; see pipeline scripts).
 
 ---
 
@@ -40,7 +40,7 @@ This project built a structured, reproducible dataset of experimentally reported
 | Paper | `paper_b7_proline_rich_2025` | Antibiotics 2025 | 6 |
 | Paper | `paper_c14r_eskape_2026` | Antibiotics 2026 | 6 |
 
-**Total:** 12 sources, **2 406** records after merge, cleaning filters, and deduplication (`data/processed/dataset.csv`).
+**Total:** 12 sources, **2 401** records after merge, cleaning filters, and deduplication (`data/processed/dataset.csv`).
 
 All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic use.
 
@@ -75,7 +75,7 @@ All paper PDFs are open-access (CC-BY). DRAMP and DBAASP are free for academic u
 | Unit canonicalization | `μg/ml` → `ug/mL`; `μmol/L` → `uM`; `mg/ml` → `mg/L` etc. via `utils.canonical_measurement_unit()` |
 | MIC scalar coercion | `measurement_value` → float-parseable scalar via `utils.coerce_mic_measurement_to_scalar_string()` (comparison symbols stripped; ranges → upper endpoint; see `scripts/clean_dataset.py`) |
 | `publication_year` cast | Converted to `pd.Int64Dtype()` |
-| Dedup / drop | Filters + fingerprint dedupe + duplicate `record_id` handling reduce **2434 merged → 2406 cleaned** rows in the current artifact |
+| Dedup / drop | Filters + fingerprint dedupe + duplicate `record_id` handling reduce **2434 merged → 2401 cleaned** rows in the current artifact |
 
 ---
 

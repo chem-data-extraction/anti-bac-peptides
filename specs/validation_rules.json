@@ -72,6 +72,13 @@
       "description": "Non-empty source_type values should match schema allowed_values (scripts/validate_project.py SOURCE_TYPES_ALLOWED)."
     },
     {
+      "rule_id": "pathogen_name_not_null",
+      "target": "pathogen_name",
+      "rule_type": "not_null",
+      "severity": "error",
+      "description": "Every row must have a non-empty pathogen_name."
+    },
+    {
       "rule_id": "measurement_value_not_null",
       "target": "measurement_value",
       "rule_type": "not_null",

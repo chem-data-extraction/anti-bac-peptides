@@ -7,8 +7,21 @@ plus pathogen substring hints for extraction filters and validation warnings.
 
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
+
+
+def load_schema_field_names(schema_path: Path | None = None) -> list[str]:
+    """Return ordered field names from specs/dataset_schema.json."""
+    path = schema_path or DEFAULT_SCHEMA_PATH
+    with path.open(encoding="utf-8") as f:
+        schema = json.load(f)
+    return [field["name"] for field in schema["fields"]]
 
 
 def _compact_unit(unit_raw: object) -> str:

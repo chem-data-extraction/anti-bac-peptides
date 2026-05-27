@@ -16,20 +16,14 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from utils import (
     canonical_measurement_unit,
+    load_schema_field_names,
     pathogen_contains_nonbacterial_hint,
     unit_context_note,
     verbatim_measurement_value,
 )
 
-SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
 PROVENANCE_FIELDS = ("extraction_method", "extraction_confidence", "notes")
 STANDARD_AA = set("ACDEFGHIKLMNPQRSTVWYX")
-
-
-def load_schema_field_names() -> list[str]:
-    with SCHEMA_PATH.open(encoding="utf-8") as f:
-        schema = json.load(f)
-    return [field["name"] for field in schema["fields"]]
 
 
 def default_output_columns() -> list[str]:

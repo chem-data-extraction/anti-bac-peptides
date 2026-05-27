@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
 from pathlib import Path
 
@@ -11,12 +10,16 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from utils import canonical_measurement_unit, coerce_mic_measurement_to_scalar_string, pathogen_contains_nonbacterial_hint
+from utils import (
+    canonical_measurement_unit,
+    coerce_mic_measurement_to_scalar_string,
+    load_schema_field_names,
+    pathogen_contains_nonbacterial_hint,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
 MERGED_PATH = ROOT / "data/interim/merged_records.csv"
-SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
 DATASET_PATH = ROOT / "data/processed/dataset.csv"
 
 MISSING_TOKENS = {"", "na", "n/a", "none", "null", "-", "nan"}
@@ -127,6 +130,11 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
     if "measurement_value" in out.columns:
         out["measurement_value"] = out["measurement_value"].map(normalize_verbatim_mic)
+        mv_empty = out["measurement_value"].isna() | (out["measurement_value"] == "")
+        if mv_empty.any():
+            dropped_n = int(mv_empty.sum())
+            out = out.loc[~mv_empty].copy()
+            print(f"Dropped {dropped_n} row(s) with empty measurement_value after normalization.")
 
     if "measurement_unit" in out.columns:
         out["measurement_unit"] = out["measurement_unit"].map(normalize_measurement_unit)
@@ -148,7 +156,7 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             continue
         out[col] = out[col].map(normalize_missing_values)
 
-    schema_cols = load_schema_columns()
+    schema_cols = load_schema_field_names()
     content_cols = [c for c in schema_cols if c != "record_id" and c in out.columns]
     if content_cols:
         before = len(out)
@@ -160,12 +168,6 @@ def clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         out = out.drop_duplicates(subset=["record_id"], keep="first")
 
     return out
-
-
-def load_schema_columns() -> list[str]:
-    with SCHEMA_PATH.open(encoding="utf-8") as f:
-        schema = json.load(f)
-    return [field["name"] for field in schema["fields"]]
 
 
 def load_input_frame() -> pd.DataFrame:
@@ -182,7 +184,7 @@ def load_input_frame() -> pd.DataFrame:
 
 def main() -> None:
     df = load_input_frame()
-    columns = load_schema_columns()
+    columns = load_schema_field_names()
     for col in columns:
         if col not in df.columns:
             df[col] = None

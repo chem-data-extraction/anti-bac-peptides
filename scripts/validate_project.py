@@ -110,12 +110,32 @@ def check_source_id(df: pd.DataFrame, source_map: dict) -> tuple[list[str], list
     return errors, warnings
 
 
+def check_required_field_not_null(
+    df: pd.DataFrame, column: str, label: str | None = None
+) -> list[str]:
+    name = label or column
+    if column not in df.columns:
+        return [f"{name} column missing from dataset"]
+    col = df[column]
+    if col.isna().any() or (col.astype(str).str.strip() == "").any():
+        return [f"{name} contains null or empty values"]
+    return []
+
+
+def check_peptide_sequence(df: pd.DataFrame) -> list[str]:
+    return check_required_field_not_null(df, "peptide_sequence")
+
+
+def check_pathogen_name(df: pd.DataFrame) -> list[str]:
+    return check_required_field_not_null(df, "pathogen_name")
+
+
 def check_measurement_value(df: pd.DataFrame) -> list[str]:
-    issues = []
+    issues = check_required_field_not_null(df, "measurement_value")
+    if issues:
+        return issues
     col = df["measurement_value"]
     for idx, val in col.items():
-        if pd.isna(val) or val == "":
-            continue
         try:
             float(val)
         except (TypeError, ValueError):
@@ -174,6 +194,8 @@ def validate(root: Path = ROOT) -> tuple[list[str], list[str]]:
 
     errors.extend(check_dataset_columns(df, schema))
     errors.extend(check_record_id(df))
+    errors.extend(check_peptide_sequence(df))
+    errors.extend(check_pathogen_name(df))
     errors.extend(check_measurement_value(df))
 
     src_errors, src_warnings = check_source_id(df, source_map)

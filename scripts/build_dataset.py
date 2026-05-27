@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import json
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from utils import load_schema_field_names
 
 PDF_CSV = ROOT / "data/extracted/pdf_extracted_records.csv"
 WEB_CSV = ROOT / "data/extracted/web_extracted_records.csv"
-SCHEMA_PATH = ROOT / "specs/dataset_schema.json"
 MERGED_PATH = ROOT / "data/interim/merged_records.csv"
-
-
-def load_schema_columns() -> list[str]:
-    with SCHEMA_PATH.open(encoding="utf-8") as f:
-        schema = json.load(f)
-    return [field["name"] for field in schema["fields"]]
 
 
 def load_extract_csv(path: Path, columns: list[str]) -> pd.DataFrame:
@@ -30,7 +28,7 @@ def load_extract_csv(path: Path, columns: list[str]) -> pd.DataFrame:
 
 
 def build() -> pd.DataFrame:
-    columns = load_schema_columns()
+    columns = load_schema_field_names()
     pdf_df = load_extract_csv(PDF_CSV, columns)
     web_df = load_extract_csv(WEB_CSV, columns)
     return pd.concat([pdf_df, web_df], ignore_index=True)

@@ -10,7 +10,7 @@ Curated tabular collection of experimentally reported minimum inhibitory concent
 
 In `data/extracted/*.csv`, MIC text is kept close to the source (commas normalized). The publication file `data/processed/dataset.csv` stores **`measurement_value` as a numeric scalar** (`clean_dataset.py`): comparison symbols stripped, ranges mapped to the upper endpoint, ± split. Normalized unit label: `measurement_unit`. This release stores **MIC-only** antibacterial measurements; peptide sequence is mandatory on each row after extraction and cleaning.
 
-**2 406 records · 18 fields · 12 sources**
+**2 401 records · 18 fields · 12 sources**
 
 ## Scientific task
 
@@ -76,7 +76,7 @@ See `specs/source_map.json` for the full inventory of 12 `source_id` values.
 - **`measurement_value` → numeric scalar string** (`coerce_mic_measurement_to_scalar_string` in `scripts/utils.py`); MIC unit canonicalization (`ug/mL`, `uM`, `nM`, `ng/mL`, `mg/L`, `pmol/ml`; `AU/μg` kept when sourced)
 - `publication_year` cast to integer
 - Non-bacterial row removal (fungal, viral, mammalian targets)
-- **Rows without `peptide_sequence` after normalization are dropped**
+- **Rows without `peptide_sequence` or `measurement_value` after normalization are dropped**
 - Content-fingerprint deduplication
 
 `paper_c14r_eskape_2026`: MIC table is paired with peptide sequence CSSGSLWRLIRRFLRR reported in Mildenberger et al. 2024 (Pharmaceuticals 17:83), not reproduced in Antibiotics 2026.
@@ -99,7 +99,7 @@ Validation checks include:
 | Metric | Value |
 |--------|-------|
 | Non-canonical `measurement_unit` | 7 rows (`AU/μg` from DRAMP) |
-| Rows dropped merging → processed | **28** (filters + dedup; see `clean_dataset.py` output) |
+| Rows dropped merging → processed | **33** (non-bacterial filters, empty MIC/sequence, dedup; see `clean_dataset.py` output) |
 
 ## Known limitations
 
@@ -107,6 +107,7 @@ Validation checks include:
 - 7 DRAMP rows carry `AU/μg` (activity units) which are not concentration-comparable.
 - DRAMP pathogen name field occasionally contains inhibition-percentage strings (source data artifact).
 - MIC in **`dataset.csv`** is a **numeric scalar**; censored/range wording from literature lives in extracts or pathogen narratives, not reliably in `measurement_value`.
+- DBAASP API extraction used `max_records=1000`; **974 rows** remain in the final dataset after bacterial-pathogen filtering, MIC normalization, and deduplication.
 
 ## Recommended use
 

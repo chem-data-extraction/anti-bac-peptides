@@ -16,11 +16,12 @@ Each record captures (when available): peptide **sequence** and name, organism o
 
 | Metric | Value |
 |--------|-------|
-| Rows | **2 406** |
+| Rows | **2 401** |
 | Unique sources | 12 (2 databases + 10 papers) |
 | Schema fields | **18** (see `specs/dataset_schema.json`) |
 | Required columns | `record_id`, **`peptide_sequence`**, `pathogen_name`, `measurement_value`, `source_id` |
 | Rows without peptide sequence after cleaning | **0** |
+| Rows without measurement value after cleaning | **0** |
 | Dominant unit | `ug/mL` (~59 %), `uM` (~34 %) |
 | Publication years covered | 2023–2026 |
 
@@ -54,7 +55,7 @@ Defined in `specs/source_map.json` (version 1.8.3):
 | AI-designed AMPs, Curr Microbiol 2025 | Paper | 76 |
 | D-TN peptides, Life 2025 | Paper | 45 |
 | Melittin analogues, Processes 2026 | Paper | 34 |
-| SK-peptides, Springer 2025 | Paper | 24 |
+| SK-peptides, Springer 2025 | Paper | 19 |
 | Lee et al. 2023 (cecropins) | Paper | 16 |
 | Zhang et al. 2024 | Paper | 10 |
 | B7-005 proline-rich, Antibiotics 2025 | Paper | 6 |

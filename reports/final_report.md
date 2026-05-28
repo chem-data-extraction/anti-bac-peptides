@@ -34,7 +34,7 @@ This project built a structured, reproducible dataset of experimentally reported
 | Paper | `paper_ramata_stunda_2023` | Antibiotics 2023 | 66 |
 | Paper | `paper_life_tn_peptides_2025` | Life 2025 | 45 |
 | Paper | `paper_melittin_processes_mdpi` | Processes 2026 | 34 |
-| Paper | `paper_sk_peptides_springer_2025` | Springer 2025 | 24 |
+| Paper | `paper_sk_peptides_springer_2025` | Springer 2025 | 19 |
 | Paper | `paper_lee_2023` | Pharmaceutics 2023 | 16 |
 | Paper | `paper_zhang_2024` | Spectrum 2024 | 10 |
 | Paper | `paper_b7_proline_rich_2025` | Antibiotics 2025 | 6 |

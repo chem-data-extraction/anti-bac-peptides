@@ -101,6 +101,10 @@ See `specs/dataset_schema.json` for required fields and the full field list (`pe
 - DBAASP extraction requires a live network connection to `dbaasp.org`.
 - Some DRAMP pathogen names contain inhibition-percentage prefixes (data quality limitation of the source).
 
+## Author
+
+**Stepan Druzhininskii** — dataset curation, extraction pipelines, and documentation (`project.json`, `CITATION.cff`).
+
 ## License and citation
 
 See `LICENSE` (CC-BY-4.0) and `CITATION.cff`.

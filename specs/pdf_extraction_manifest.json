@@ -53,7 +53,8 @@
         "inoculum_cfu_ml": "5e5",
         "temperature_c": 32,
         "incubation_time_h": 16
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_zhang_2024",
@@ -79,7 +80,8 @@
         "inoculum_cfu_ml": "5e5",
         "temperature_c": 37,
         "incubation_time_h": 18
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_lee_2023",
@@ -104,7 +106,8 @@
         "inoculum_cfu_ml": "2e5",
         "temperature_c": 37,
         "incubation_time_h": 16
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_melittin_processes_mdpi",
@@ -131,7 +134,8 @@
         "inoculum_cfu_ml": "",
         "temperature_c": 37,
         "incubation_time_h": 24
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_deepamp_nature_2024",
@@ -156,7 +160,8 @@
         "inoculum_cfu_ml": "5e5",
         "temperature_c": 37,
         "incubation_time_h": 24
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_ai_amp_curr_microbiol_2025",
@@ -182,7 +187,8 @@
         "inoculum_cfu_ml": "1e6",
         "temperature_c": 37,
         "incubation_time_h": 24
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_life_tn_peptides_2025",
@@ -207,7 +213,8 @@
         "inoculum_cfu_ml": "1e5",
         "temperature_c": 37,
         "incubation_time_h": 18
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_sk_peptides_springer_2025",
@@ -233,7 +240,8 @@
         "inoculum_cfu_ml": "1e5",
         "temperature_c": 37,
         "incubation_time_h": 18
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_b7_proline_rich_2025",
@@ -258,7 +266,8 @@
         "inoculum_cfu_ml": "5e5",
         "temperature_c": 37,
         "incubation_time_h": 18
-      }
+      },
+      "extraction_status": "complete"
     },
     {
       "source_id": "paper_c14r_eskape_2026",
@@ -283,7 +292,8 @@
         "inoculum_cfu_ml": "",
         "temperature_c": 37,
         "incubation_time_h": 24
-      }
+      },
+      "extraction_status": "complete"
     }
   ]
 }

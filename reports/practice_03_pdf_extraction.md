@@ -62,6 +62,26 @@ If a PDF is missing or parsing yields no rows, the script logs an empty extracti
 
 MIC values are emitted as **text tokens** in `pdf_extracted_records.csv` (`verbatim_measurement_value`). After `scripts/clean_dataset.py`, `data/processed/dataset.csv` carries **numeric MIC scalars**. Units are canonicalized via `scripts/utils.py`. Rows without a MIC token are not exported.
 
+## Extraction results
+
+All ten PDF sources extracted successfully (`data/extracted/extraction_log.jsonl`, run 2026-05-25):
+
+| source_id | records_written | status |
+|-----------|----------------:|--------|
+| paper_ramata_stunda_2023 | 66 | success |
+| paper_zhang_2024 | 10 | success |
+| paper_lee_2023 | 16 | success |
+| paper_melittin_processes_mdpi | 35 | success |
+| paper_deepamp_nature_2024 | 150 | success |
+| paper_ai_amp_curr_microbiol_2025 | 76 | success |
+| paper_life_tn_peptides_2025 | 45 | success |
+| paper_sk_peptides_springer_2025 | 24 | success |
+| paper_b7_proline_rich_2025 | 6 | success |
+| paper_c14r_eskape_2026 | 6 | success |
+| **Total** | **434** | |
+
+Output: `data/extracted/pdf_extracted_records.csv` (434 data rows + header).
+
 ## Extraction problems
 
 - Merged cells and multi-line headers can misalign columns.

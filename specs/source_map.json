@@ -287,6 +287,10 @@
         },
         "notes": "Designed pore-forming AMP C14R (Ulm University). Antibiotics 2026 does not reproduce the peptide sequence; the extractor fills `peptide_sequence` from Mildenberger et al. 2024 (Pharmaceuticals 17:83) (CSSGSLWRLIRRFLRR)."
       }
-    ]
+    ],
+    "supplementary_materials": [],
+    "aggregators": [],
+    "github_repositories": [],
+    "ml_datasets": []
   }
 }
